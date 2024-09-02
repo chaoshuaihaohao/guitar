@@ -68,11 +68,11 @@ struct simple_char Pitch_Name[] = {
 	{ "B7", 3951.07, 0x77},
 };
 
-void play_sound(float hz, int time)
+void play_sound(float hz, float time)
 {
 	char command[256];
 
-	sprintf(command, "sox -n output.wav synth %d sine %f", time, hz);
+	sprintf(command, "sox -n output.wav synth %f sine %f", time, hz);
 	printf("%s\n", command);
 	system(command);
 
@@ -166,7 +166,7 @@ int main() {
 	// 低音5（E4）的频率大约是330 Hz
 	// 持续时间为3秒
 //	float hz = 330;
-	int time = 1;
+	float time;
 
 	uint8_t key;
 	key = get_roll_call_by_simple('1', 4);
@@ -180,6 +180,7 @@ int main() {
 		key = get_roll_call_by_simple(input[i].symbol, input[i].pitch);
 		if (key < 0)
 			continue;
+		time = 4.0 / input[i].duration;
 #if 1
 	for (j = 0; j < ARRAY_SIZE(Pitch_Name); j++) {
 		if (key == Pitch_Name[j].key) {
