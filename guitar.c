@@ -71,9 +71,14 @@ struct simple_char Pitch_Name[] = {
 void play_sound(float hz, int time)
 {
 	char command[256];
-	sprintf(command, "beep -f %f -l %d", hz, time);
 
+	sprintf(command, "sox -n output.wav synth %d sine %f", time, hz);
 	printf("%s\n", command);
+	system(command);
+
+	sprintf(command, "aplay output.wav");
+	printf("%s\n", command);
+	system(command);
 }
 
 #if 0
@@ -124,18 +129,32 @@ static uint8_t get_roll_call_by_simple(char symbol, int pitch)
 {
 	uint8_t key;
 
-	
-	key = atoi(&symbol);
-	key |= (0x10 * pitch) & 0xF0;
+	switch (symbol) {
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+		key = atoi(&symbol);
+		key |= (0x10 * pitch) & 0xF0;
 
-	key += KEY_SIGNATURE;
+		key += KEY_SIGNATURE;
 
-	if ((key & 0xF) > 7) {
-		key += 0x10;
-		key -= 7;
+		if ((key & 0xF) > 7) {
+			key += 0x10;
+			key -= 7;
+		}
+		printf("%s: key 0x%02x\n",  __func__, key);
+		break;
+	default:
+		printf("Unsupport key %c\n", symbol);
+		return -1;
 	}
 
-	printf("%s: key 0x%02x\n",  __func__, key);
+	
+
 	return key;
 }
 
@@ -147,7 +166,7 @@ int main() {
 	// 低音5（E4）的频率大约是330 Hz
 	// 持续时间为3秒
 //	float hz = 330;
-	int time = 3000;
+	int time = 1;
 
 	uint8_t key;
 	key = get_roll_call_by_simple('1', 4);
@@ -157,8 +176,10 @@ int main() {
 
 #if 1
 	for (i = 0; i < ARRAY_SIZE(input); i++) {
-		printf("symbolL %c\n", input[i].symbol);
+		printf("symbol %c\n", input[i].symbol);
 		key = get_roll_call_by_simple(input[i].symbol, input[i].pitch);
+		if (key < 0)
+			continue;
 #if 1
 	for (j = 0; j < ARRAY_SIZE(Pitch_Name); j++) {
 		if (key == Pitch_Name[j].key) {
