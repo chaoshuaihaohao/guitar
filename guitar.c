@@ -186,7 +186,7 @@ static const struct simple_input input[] = {
 	{ '3', 8, 4},
 	{ '2', 8, 4},//副点 ,时值是上一个音符时值的一半， 8* 2=16
 	{ '3', 4, 4},
-	{ '-', 4, 0},
+	{ '-', 0, 0},
 
 	{ '3', 8, 4},
 	{ '3', 16, 4},
@@ -209,7 +209,34 @@ static const struct simple_input input[] = {
 	{ '1', 8, 4},
 	{ '2', 4, 4},
 	{ '-', 4, 0},
-//	{ '.', 8, 0},//副点
+//	{ '.', 0, 0},//副点
+	{ '3', 4, 4},
+	{ '.', 0, 0},
+	{ '5', 16, 4},
+	{ '3', 16, 4},
+	{ '6', 8, 0},
+	{ '5', 4, 4},
+	{ '.', 0, 0},
+
+	{ '6', 8, 4},
+	{ '5', 8, 0},
+	{ '5', 8, 4},
+	{ '3', 8, 4},
+	{ '5', 4, 0},
+	{ '.', 0, 0},
+	{ '5', 8, 0},
+
+	{ '3', 4, 4},
+	{ '2', 8, 0},
+	{ '3', 8, 4},
+	{ '5', 4, 4},
+	{ '3', 8, 4},
+	{ '2', 8, 4},
+
+	{ '2', 4, 4},
+	{ '2', 8, 0},
+	{ '1', 8, 4},
+	{ '2', 4, 4},
 };
 #endif
 static uint8_t get_roll_call_by_simple(char symbol, int pitch)
@@ -350,6 +377,19 @@ static float get_freq_of_note(char *str) {
 static char *get_note_by_symbol(const char *str, int *octave)
 {
 	char input = str[0];
+	switch (input) {
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+		break;
+	default:
+		//printf("INFO: unsupport str %s\n", str);
+		return NULL;
+	}
 	int level = atoi(&input);
 
 	*octave = DEAFULT_OCTAVE;
@@ -361,8 +401,8 @@ static char *get_note_by_symbol(const char *str, int *octave)
 		(*octave)++;
 
 	}
-	printf("new_level %d\n", new_level);
-	printf("interval %d\n", interval);
+//	printf("new_level %d\n", new_level);
+//	printf("interval %d\n", interval);
 
 	int i;
 	char *note = NULL;
