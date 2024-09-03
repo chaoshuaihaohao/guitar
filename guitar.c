@@ -6,8 +6,8 @@
 #include <math.h>
 
 //#define KEY_SIGNATURE  KEY_SIGNATURE_C_SHARP  //: 调号
-//#define KEY_SIGNATURE  KEY_SIGNATURE_A //: 调号
-#define KEY_SIGNATURE  KEY_SIGNATURE_B_FLAT //: 调号
+#define KEY_SIGNATURE  KEY_SIGNATURE_F //: 调号
+//#define KEY_SIGNATURE  KEY_SIGNATURE_B_FLAT //: 调号
 
 #define DEAFULT_OCTAVE	4
 
@@ -164,6 +164,7 @@ struct simple_input {
  * 16:duration: 时值
  * C4音高。
 */
+#if 0
 static const struct simple_input input[] = {
 	{ '2', 16, 4},
 	{ '3', 8, 4},
@@ -179,7 +180,38 @@ static const struct simple_input input[] = {
 	{ '2', 16, 4},
 	{ '1', 16, 4},
 };
+#else
+static const struct simple_input input[] = {
+	{ '3', 4, 4},
+	{ '3', 8, 4},
+	{ '2', 8, 4},//副点 ,时值是上一个音符时值的一半， 8* 2=16
+	{ '3', 4, 4},
+	{ '-', 4, 0},
 
+	{ '3', 8, 4},
+	{ '3', 16, 4},
+	{ '5', 16, 4},
+	{ '3', 8, 4},
+	{ '2', 8, 4},
+	{ '3', 4, 4},
+	{ '-', 4, 0},
+
+	{ '1', 4, 4},
+	{ '1', 8, 4},
+	{ '2', 8, 4},
+	{ '3', 8, 4},
+	{ '5', 16, 4},
+	{ '3', 16, 4},
+	{ '3', 4, 4},
+
+	{ '2', 4, 4},
+	{ '2', 8, 4},
+	{ '1', 8, 4},
+	{ '2', 4, 4},
+	{ '-', 4, 0},
+//	{ '.', 8, 0},//副点
+};
+#endif
 static uint8_t get_roll_call_by_simple(char symbol, int pitch)
 {
 	uint8_t key;
@@ -219,6 +251,8 @@ static float get_time_of_note(const struct simple_input *input)
 
 	if (next->symbol == '.')
 		time *= 1.5;
+	else if (next->symbol == '-')
+		time *= 2;
 		
 	printf("%s: %f\n", __func__, time);
 	printf("%s: %d\n", __func__, input[0].duration);
@@ -339,7 +373,7 @@ static char *get_note_by_symbol(const char *str, int *octave)
 	}
 
 	if (!note) {
-		printf("Err: no key symbol is matched.");
+		printf("Err: no key symbol is matched.\n");
 		return NULL;
 	}
 	return note;
@@ -382,17 +416,21 @@ int main(int argc, char **argv) {
 	for (i = 0; i < ARRAY_SIZE(input); i++) {
 		const char *str = &input[i].symbol;
 		if (strlen(str) > 1) {
-			printf("Err len %d\n", strlen(str));
+			printf("Err len %ld\n", strlen(str));
 			return -1;
 		}
 
 		int octave;
 		char *note = get_note_by_symbol(str, &octave);
+		if (!note)
+			continue;
 		char tmp[20];
 		sprintf(tmp, "%s%d", note, octave);
 		printf("%s's note is %s\n", str, tmp);
 
 		float frequency = get_freq_of_note(tmp);
+		if (frequency < 0)
+			continue;
 		time = get_time_of_note(&input[i]);
 		play_sound(frequency, time);
 	}
