@@ -6,29 +6,15 @@
 #include <math.h>
 
 //#define KEY_SIGNATURE  KEY_SIGNATURE_C_SHARP  //: 调号
-#define KEY_SIGNATURE  KEY_SIGNATURE_F //: 调号
-//#define KEY_SIGNATURE  KEY_SIGNATURE_B_FLAT //: 调号
+#define KEY_SIGNATURE  KEY_SIGNATURE_F 		//: 调号
+//#define KEY_SIGNATURE  KEY_SIGNATURE_B_FLAT 	//: 调号
+
+#define TEMPO 120	//节拍
 
 #define DEAFULT_OCTAVE	4
 
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
 
-#if 0
-enum LEVEL {
-	LEVEL_1,
-	LEVEL_1_SHARP, LEVEL_2_FLAT = LEVEL_1_SHARP,
-	LEVEL_2,
-	LEVEL_2_SHARP, LEVEL_3_FLAT = LEVEL_2_SHARP,
-	LEVEL_3,
-	LEVEL_4,
-	LEVEL_4_SHARP, LEVEL_5_FLAT = LEVEL_4_SHARP,
-	LEVEL_5,
-	LEVEL_5_SHARP, LEVEL_6_FLAT = LEVEL_5_SHARP,
-	LEVEL_6,
-	LEVEL_6_SHARP, LEVEL_7_FLAT = LEVEL_6_SHARP,
-	LEVEL_7,
-};
-#else
 enum LEVEL {
 	LEVEL_1,
 	LEVEL_2,
@@ -53,7 +39,6 @@ static struct level_step step [] = {
 	{LEVEL_6, 10},
 	{LEVEL_7, 12},
 };
-#endif
 
 struct key_step {
 	int filed;
@@ -116,24 +101,6 @@ struct simple_char {
 	uint8_t key;	//high 4 is pitch, low 4 bit is key
 };
 
-//"C", "C#", "Db", "D", "D#", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"
-
-#if 0
-struct simple_char Pitch_Name[] = {
-	{ "C",  , 0x01},
-	{ "C#/Db", , 0x01},
-	{ "D", , 0x01},
-	{ "D#/Eb", , 0x01},
-	{ "E", , 0x01},
-	{ "F", , 0x01},
-	{ "F#/Gb", , 0x01},
-	{ "G", 16.35, 0x01},
-	{ "G#/Ab", , 0x01},
-	{ "A", 1760.00, 0x66},
-//	{ "A#/Bb, 16.35, 0x01},
-	{ "B", 1975.53, 0x67},
-};
-#endif
 void play_sound(float hz, float time)
 {
 	char command[256];
@@ -142,7 +109,7 @@ void play_sound(float hz, float time)
 	printf("%s\n", command);
 	system(command);
 
-	sprintf(command, "aplay output.wav");
+	sprintf(command, "aplay output.wav > /dev/null");
 //	printf("%s\n", command);
 	system(command);
 }
@@ -274,25 +241,22 @@ static float get_time_of_note(const struct simple_input *input)
 {
 	const struct simple_input *next = input + 1;
 
-	float time = 4.0 / input[0].duration;
+	float time = 60.0 / TEMPO * 4.0 / input[0].duration;
 
 	if (next->symbol == '.')
 		time *= 1.5;
 	else if (next->symbol == '-')
 		time *= 2;
 		
-	printf("%s: %f\n", __func__, time);
-	printf("%s: %d\n", __func__, input[0].duration);
+	printf("%s: time %f duration %d\n", __func__, time, input[0].duration);
 	return time;
 }
-
 
 static void print_level()
 {
 	printf("LEVEL_1 %d\n", LEVEL_1);
 	printf("LEVEL_6 %d\n", LEVEL_6);
 }
-
 
 static float get_freq_of_note(char *str) {
 	int steps_from_a4;
@@ -361,8 +325,6 @@ static float get_freq_of_note(char *str) {
 	
 	} while (next);
 
-	printf("steps_from_a4 %d\n", steps_from_a4);
-	printf("octave %d\n", octave);
 #define REFERENCE_FREQ 440.0 // A4的频率
 #define OCTAVE_RATIO 1.05946 // 两个半音之间的频率比
 	// 计算总的半音步数
@@ -370,8 +332,48 @@ static float get_freq_of_note(char *str) {
 	// 计算频率
 	double frequency;
 	frequency = REFERENCE_FREQ * pow(OCTAVE_RATIO, total_steps);
-	printf("frequency %f\n", frequency);
+	printf("steps_from_a4: %d, octave: %d, frequency: %f\n", steps_from_a4, octave, frequency);
 	return frequency;
+}
+
+void get_chord(char *note) 
+{
+	
+	int level, interval;
+	int i;
+	for (i = 0; i < ARRAY_SIZE(key_symbol); i++) {
+		if (strcmp(note, key_symbol[i].name) == 0) {
+			level = key_symbol[i].level;
+			interval = key_symbol[i].interval;
+			printf("key_symbol[i].name %s\n", key_symbol[i].name);
+			level += 2;
+			level %= 7;
+			interval += 4;
+			if (interval > 2)
+				interval -= 12;
+			for (i = 0; i < ARRAY_SIZE(key_symbol); i++) {
+				if (key_symbol[i].level == level && key_symbol[i].interval == interval)
+					printf("key_symbol[i].name %s\n", key_symbol[i].name);
+			}
+			level += 2;
+			level %= 7;
+			interval += 3;
+			if (interval > 2)
+				interval -= 12;
+			for (i = 0; i < ARRAY_SIZE(key_symbol); i++) {
+				if (key_symbol[i].level == level && key_symbol[i].interval == interval)
+					printf("key_symbol[i].name %s\n", key_symbol[i].name);
+			}
+			break;
+		}
+	}
+
+
+
+}
+static char *get_symbol_by_note(const char *note, int *octave)
+{
+
 }
 
 static char *get_note_by_symbol(const char *str, int *octave)
@@ -409,12 +411,14 @@ static char *get_note_by_symbol(const char *str, int *octave)
 	for (i = 0; i < ARRAY_SIZE(key_symbol); i++) {
 		if (key_symbol[i].interval == interval && key_symbol[i].level == new_level)
 			note = key_symbol[i].name;
-
 	}
 
 	if (!note) {
 		printf("Err: no key symbol is matched.\n");
 		return NULL;
+	} else {
+		get_chord(note);
+	
 	}
 	return note;
 }
@@ -466,7 +470,7 @@ int main(int argc, char **argv) {
 			continue;
 		char tmp[20];
 		sprintf(tmp, "%s%d", note, octave);
-		printf("%s's note is %s\n", str, tmp);
+		printf("%s's note is: %s\n", str, tmp);
 
 		float frequency = get_freq_of_note(tmp);
 		if (frequency < 0)
@@ -477,3 +481,19 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
+
+struct Triad {
+	int root;
+	int third;
+	int fifth;
+};
+
+struct Triad triad [] = {
+	{ 1,3,5 },
+	{ 2,4,6 },
+	{ 3,5,7 },
+	{ 4,6,1 },
+	{ 5,7,2 },
+	{ 6,1,3 },
+	{ 7,2,4 },
+};
