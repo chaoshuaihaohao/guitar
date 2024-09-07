@@ -156,13 +156,20 @@ static uint8_t get_roll_call_by_simple(char symbol, int pitch)
 static float get_time_of_note(const struct simple_input *input)
 {
 	const struct simple_input *next = input + 1;
-
 	float time = 60.0 / TEMPO * 4.0 / input[0].duration;
+	float count = 1;
 
-	if (next->symbol == '.')
-		time *= 1.5;
-	else if (next->symbol == '-')
-		time *= 2;
+	do {
+		if (next->symbol == '.')
+			count += 0.5;
+		else if (next->symbol == '-')
+			count++;
+		else {
+			break;
+		}
+
+	} while (++next);
+	time *= count;
 		
 	printf("%s: time %f duration %d\n", __func__, time, input[0].duration);
 	return time;
@@ -291,6 +298,63 @@ static int get_level_and_steps_by_symbol(const char *str)
 	return level;
 }
 
+static void dump_simple_table(struct simple_table *table)
+{
+	printf("Read %d entries from file.\n", table->len);
+		for (int j = 0; j < table->len; j++) {
+		printf("%c %d %d\n", table->input[j].symbol, table->input[j].duration, table->input[j].pitch);
+	}
+	double duration = 1.0 / QUARTER * BEAT;
+	double time = 0;
+	int count = 0;
+	int tmp = 0;
+	for (int j = 0; j < table->len; j++) {
+		switch (table->input[j].duration) {
+		case 4:
+			printf("   ");
+			break;
+		case 8:
+			printf(" ");
+			break;
+		}
+		printf("%c", table->input[j].symbol);
+		if (table->input[j].duration)
+			time += 1.0 / table->input[j].duration;
+		if (time == duration) {
+			time = 0;
+			printf("|");
+			count++;
+			if (count % 4 == 0) {
+				printf("\n");
+				for (int k = tmp; k <= j; k++) {
+					switch (table->input[k].duration) {
+					case 4:
+						printf("    ");
+						break;
+					case 8:
+						printf(" -");
+						break;
+					case 16:
+						printf("=");
+						break;
+					}
+					if (table->input[k].duration)
+						time += 1.0 / table->input[k].duration;
+					if (time == duration) {
+						time = 0;
+						printf("|");
+					}
+				}
+				tmp = j+1;
+				printf("\n");
+				time = 0;
+
+			}
+		}
+	}
+	printf("\n");
+}
+
 static int get_input_from_file(struct simple_table *table)
 {
     FILE *file;
@@ -320,22 +384,7 @@ static int get_input_from_file(struct simple_table *table)
     fclose(file);
 
     // 打印读取的数据
-    printf("Read %d entries from file.\n", table->len);
-    for (int j = 0; j < table->len; j++) {
-        printf("%c %d %d\n", table->input[j].symbol, table->input[j].duration, table->input[j].pitch);
-    }
-    double duration = 1.0 / QUARTER * BEAT;
-    double time = 0;
-	for (int j = 0; j < table->len; j++) {
-		if (table->input[j].duration)
-			time += 1 / table->input[j].duration;
-		if (time == duration)
-			printf("\n");
-		else
-			printf("%c ", table->input[j].symbol);
-	}
-
-
+    dump_simple_table(table);
 
     return EXIT_SUCCESS;
 }
@@ -507,8 +556,8 @@ static const char *get_note_by_symbol(const char *str, int *octave)
 		interval += 12;
 		(*octave)--;
 	}
-//	printf("new_level %d\n", new_level);
-//	printf("interval %d\n", interval);
+	printf("note_level %d\n", note_level);
+	printf("interval %d\n", interval);
 
 	int i;
 	char *note_name = NULL;
@@ -594,7 +643,7 @@ int main(int argc, char **argv) {
 		if (frequency < 0)
 			continue;
 		time = get_time_of_note(&table.input[i]);
-		play_sound(frequency, time);
+//		play_sound(frequency, time);
 	}
 #endif
 	for (i = 0; i < table.len; i++) {
