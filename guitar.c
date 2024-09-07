@@ -567,8 +567,11 @@ int main(int argc, char **argv) {
 			req.tv_sec = 0;
 			req.tv_nsec = time * 1000000000;
 			nanosleep(&req, &rem);
+			printf("symbol '%s' continue, delay %ld seconds\n", str, req.tv_nsec);
+			continue;
 		}
 		char tmp[20];
+		octave += table.input[i].pitch;
 		sprintf(tmp, "%s%d", note, octave);
 		printf("%s's note is: %s\n", str, tmp);
 
