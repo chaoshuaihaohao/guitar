@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <math.h>
+#include <time.h>
 #include "guitar.h"
 
 //#define KEY_SIGNATURE  KEY_SIGNATURE_C_SHARP  //: 调号
@@ -459,7 +460,7 @@ static char *get_note_by_level(const int level)
 	return note_name;
 }
 
-static char *get_note_by_symbol(const char *str, int *octave)
+static const char *get_note_by_symbol(const char *str, int *octave)
 {
 	char input = str[0];
 	switch (input) {
@@ -471,6 +472,8 @@ static char *get_note_by_symbol(const char *str, int *octave)
 	case '6':
 	case '7':
 		break;
+	case '0':
+		return str;
 	default:
 		printf("INFO: unsupport str %s\n", str);
 		return NULL;
@@ -554,10 +557,16 @@ int main(int argc, char **argv) {
 		}
 
 		int octave;
-		char *note = get_note_by_symbol(str, &octave);
+		const char *note = get_note_by_symbol(str, &octave);
 		if (!note) {
 			printf("symbol '%s' continue\n", str);
 			continue;
+		} else if (note[0] == '0') {
+			float time = 60.0 / TEMPO * 4.0 / table.input[i].duration;
+			struct timespec req, rem;
+			req.tv_sec = 0;
+			req.tv_nsec = time * 1000000000;
+			nanosleep(&req, &rem);
 		}
 		char tmp[20];
 		sprintf(tmp, "%s%d", note, octave);
