@@ -222,137 +222,10 @@ static float get_freq_of_note(char *str) {
 	return frequency;
 }
 
-void get_chord(char *note_name) 
-{
-	
-	int level, interval;
-	int i;
-	for (i = 0; i < ARRAY_SIZE(note); i++) {
-		if (strcmp(note_name, note[i].name) == 0) {
-			level = note[i].level;
-			interval = note[i].steps_from_a4;
-			printf("note[i].name %s\n", note[i].name);
-			level += 2;
-			level %= 7;
-			interval += 4;
-			if (interval > 3)
-				interval -= 12;
-			for (i = 0; i < ARRAY_SIZE(note); i++) {
-				if (note[i].level == level && note[i].steps_from_a4 == interval)
-					printf("note[i].name %s\n", note[i].name);
-			}
-			level += 2;
-			level %= 7;
-			interval += 3;
-			if (interval > 3)
-				interval -= 12;
-			for (i = 0; i < ARRAY_SIZE(note); i++) {
-				if (note[i].level == level && note[i].steps_from_a4 == interval)
-					printf("note[i].name %s\n", note[i].name);
-			}
-			break;
-		}
-	}
-}
-
-static char *get_third_chord(const char *note)
-{
-	
-
-	return NULL;
-}
-
-static char *get_note_by_level(const int level)
-{
-	switch (level) {
-	case LEVEL_1:
-	case LEVEL_2:
-	case LEVEL_3:
-	case LEVEL_4:
-	case LEVEL_5:
-	case LEVEL_6:
-	case LEVEL_7:
-		break;
-	default:
-		//printf("INFO: unsupport str %s\n", str);
-		return NULL;
-	}
-
-	int new_level = note[KEY_SIGNATURE].level + level;
-	new_level %= 6;
-	int interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
-	if (interval > 3) {
-		interval -= 12;
-	}
-//	printf("new_level %d\n", new_level);
-//	printf("interval %d\n", interval);
-
-	int i;
-	char *note_name = NULL;
-	for (i = 0; i < ARRAY_SIZE(note); i++) {
-		if (note[i].steps_from_a4 == interval && note[i].level == new_level)
-			note_name = note[i].name;
-	}
-
-	if (!note_name) {
-		printf("Err: no key symbol is matched.\n");
-		return NULL;
-	} else {
-		//get_chord(note);
-		get_third_chord(note_name);
-	}
-	return note_name;
-}
 static char *get_symbol_by_note(const char *note, int *octave)
 {
 
 	return NULL;
-}
-
-static char *get_note_by_symbol(const char *str, int *octave)
-{
-	char input = str[0];
-	switch (input) {
-	case '1':
-	case '2':
-	case '3':
-	case '4':
-	case '5':
-	case '6':
-	case '7':
-		break;
-	default:
-		//printf("INFO: unsupport str %s\n", str);
-		return NULL;
-	}
-	int level = atoi(&input) - 1;
-
-	*octave = DEAFULT_OCTAVE;
-	int note_level = note[KEY_SIGNATURE].level + level - LEVEL_1;
-	note_level %= 7;
-	int interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
-	if (interval > 3) {
-		interval -= 12;
-		(*octave)++;
-	}
-//	printf("new_level %d\n", new_level);
-//	printf("interval %d\n", interval);
-
-	int i;
-	char *note_name = NULL;
-	for (i = 0; i < ARRAY_SIZE(note); i++) {
-		if (note[i].steps_from_a4 == interval && note[i].level == note_level)
-			note_name = note[i].name;
-	}
-
-	if (!note_name) {
-		printf("Err: no key symbol is matched.\n");
-		return NULL;
-	} else {
-		get_chord(note_name);
-	
-	}
-	return note_name;
 }
 
 static int get_level_and_steps_by_symbol(const char *str)
@@ -511,9 +384,101 @@ static char *get_seventh_note_by_note(const char *note_name)
 	return target_note;
 }
 
+void get_chord(char *note_name) 
+{
+	printf("%s %s %s\n", note_name, get_third_note_by_note(note_name), get_fifth_note_by_note(note_name));
+}
+
+static char *get_note_by_level(const int level)
+{
+	switch (level) {
+	case LEVEL_1:
+	case LEVEL_2:
+	case LEVEL_3:
+	case LEVEL_4:
+	case LEVEL_5:
+	case LEVEL_6:
+	case LEVEL_7:
+		break;
+	default:
+		//printf("INFO: unsupport str %s\n", str);
+		return NULL;
+	}
+
+	int new_level = note[KEY_SIGNATURE].level + level;
+	new_level %= 6;
+	int interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
+	if (interval > 3) {
+		interval -= 12;
+	}
+//	printf("new_level %d\n", new_level);
+//	printf("interval %d\n", interval);
+
+	int i;
+	char *note_name = NULL;
+	for (i = 0; i < ARRAY_SIZE(note); i++) {
+		if (note[i].steps_from_a4 == interval && note[i].level == new_level)
+			note_name = note[i].name;
+	}
+
+	if (!note_name) {
+		printf("Err: no key symbol is matched.\n");
+		return NULL;
+	} else {
+		get_chord(note_name);
+	}
+	return note_name;
+}
+
+static char *get_note_by_symbol(const char *str, int *octave)
+{
+	char input = str[0];
+	switch (input) {
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+		break;
+	default:
+		//printf("INFO: unsupport str %s\n", str);
+		return NULL;
+	}
+	int level = atoi(&input) - 1;
+
+	*octave = DEAFULT_OCTAVE;
+	int note_level = note[KEY_SIGNATURE].level + level - LEVEL_1;
+	note_level %= 7;
+	int interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
+	if (interval > 3) {
+		interval -= 12;
+		(*octave)++;
+	}
+//	printf("new_level %d\n", new_level);
+//	printf("interval %d\n", interval);
+
+	int i;
+	char *note_name = NULL;
+	for (i = 0; i < ARRAY_SIZE(note); i++) {
+		if (note[i].steps_from_a4 == interval && note[i].level == note_level)
+			note_name = note[i].name;
+	}
+
+	if (!note_name) {
+		printf("Err: no key symbol is matched.\n");
+		return NULL;
+	} else {
+		get_chord(note_name);
+	
+	}
+	return note_name;
+}
+
 
 int main(int argc, char **argv) {
-	int i, j;
+	int i;
 
 
 	struct simple_table table;
@@ -533,7 +498,7 @@ int main(int argc, char **argv) {
 		//time = 4.0 / input[i].duration;
 		time = get_time_of_note(&input[i]);
 #if 1
-	for (j = 0; j < ARRAY_SIZE(Pitch_Name); j++) {
+	for (int j = 0; j < ARRAY_SIZE(Pitch_Name); j++) {
 		if (key == Pitch_Name[j].key) {
 			printf("%s: ", Pitch_Name[j].name);
 			play_sound(Pitch_Name[j].hz, time);
@@ -557,8 +522,10 @@ int main(int argc, char **argv) {
 
 		int octave;
 		char *note = get_note_by_symbol(str, &octave);
-		if (!note)
+		if (!note) {
+			printf("symbol '%s' continue\n", str);
 			continue;
+		}
 		char tmp[20];
 		sprintf(tmp, "%s%d", note, octave);
 		printf("%s's note is: %s\n", str, tmp);
