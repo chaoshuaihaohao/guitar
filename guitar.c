@@ -84,73 +84,17 @@ void play_sound(float hz, float time)
 {
 	char command[256];
 
-	sprintf(command, "sox -n output.wav synth %f sine %f", time, hz);
+	sprintf(command, "sox -q -n output.wav synth %f sine %f", time, hz);
+#ifdef DEBUG
 	printf("%s\n", command);
+#endif
 	system(command);
 
 	sprintf(command, "aplay output.wav > /dev/null");
-//	printf("%s\n", command);
+#ifdef DEBUG
+	printf("%s\n", command);
+#endif
 	system(command);
-}
-
-#if 0
-//duration: 时值
-enum {
-	
-
-};
-#endif
-/* 2: 符号
- * 16:duration: 时值
- * C4音高。
-*/
-#if 0
-static const struct simple_input input[] = {
-	{ '2', 16, 4},
-	{ '3', 8, 4},
-	{ '.', 8, 0},//副点 ,时值是上一个音符时值的一半， 8* 2=16
-	{ '5', 16, 4},
-	{ '3', 16, 4},
-	{ '2', 16, 4},
-	{ '1', 16, 4},
-	{ '2', 16, 4},
-	{ '3', 8, 4},
-	{ '.', 8, 0},//副点
-	{ '3', 8, 4},
-	{ '2', 16, 4},
-	{ '1', 16, 4},
-};
-#endif
-
-static uint8_t get_roll_call_by_simple(char symbol, int pitch)
-{
-	uint8_t key;
-
-	switch (symbol) {
-	case '1':
-	case '2':
-	case '3':
-	case '4':
-	case '5':
-	case '6':
-	case '7':
-		key = atoi(&symbol);
-		key |= (0x10 * pitch) & 0xF0;
-
-		key += KEY_SIGNATURE;
-
-		if ((key & 0xF) > 7) {
-			key += 0x10;
-			key -= 7;
-		}
-		printf("%s: key 0x%02x\n",  __func__, key);
-		break;
-	default:
-		printf("Unsupport key %c\n", symbol);
-		return -1;
-	}
-
-	return key;
 }
 
 static float get_time_of_note(const struct simple_input *input)
@@ -173,12 +117,6 @@ static float get_time_of_note(const struct simple_input *input)
 		
 	printf("%s: time %f duration %d\n", __func__, time, input[0].duration);
 	return time;
-}
-
-static void print_level()
-{
-	printf("LEVEL_1 %d\n", LEVEL_1);
-	printf("LEVEL_6 %d\n", LEVEL_6);
 }
 
 static float get_freq_of_note(char *str) {
@@ -257,45 +195,6 @@ static float get_freq_of_note(char *str) {
 	frequency = REFERENCE_FREQ * pow(OCTAVE_RATIO, total_steps);
 	printf("steps_from_a4: %d, octave: %d, frequency: %f\n", steps_from_a4, octave, frequency);
 	return frequency;
-}
-
-static char *get_symbol_by_note(const char *note, int *octave)
-{
-
-	return NULL;
-}
-
-static int get_level_and_steps_by_symbol(const char *str)
-{
-	int level = -1;
-
-	switch (*str) {
-	case '1':
-		level = LEVEL_1;
-		break;
-	case '2':
-		level = LEVEL_2;
-		break;
-	case '3':
-		level = LEVEL_3;
-		break;
-	case '4':
-		level = LEVEL_4;
-		break;
-	case '5':
-		level = LEVEL_5;
-		break;
-	case '6':
-		level = LEVEL_6;
-		break;
-	case '7':
-		level = LEVEL_7;
-		break;
-	default:
-		printf("Unknown symbol %c\n", *str);
-		break;
-	}
-	return level;
 }
 
 static void dump_simple_table(struct simple_table *table)
@@ -407,7 +306,7 @@ struct Triad triad [] = {
 
 static char *get_target_note_by_note(const char *note_name, int level, int steps_up_down)
 {
-	int i;
+	uint32_t i;
 	int interval;
 	int cur_level, target_level;
 	char *target_note;
@@ -477,51 +376,7 @@ static char *get_seventh_note_by_note(const char *note_name)
 
 void get_chord(char *note_name) 
 {
-	printf("%s %s %s\n", note_name, get_third_note_by_note(note_name), get_fifth_note_by_note(note_name));
-}
-
-static char *get_note_by_level(const int level)
-{
-	switch (level) {
-	case LEVEL_1:
-	case LEVEL_2:
-	case LEVEL_3:
-	case LEVEL_4:
-	case LEVEL_5:
-	case LEVEL_6:
-	case LEVEL_7:
-		break;
-	default:
-		//printf("INFO: unsupport str %s\n", str);
-		return NULL;
-	}
-
-	int new_level = note[KEY_SIGNATURE].level + level;
-	new_level %= 6;
-	int interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
-	if (interval >= 12) {
-		interval -= 12;
-	}
-	if (interval < 0) {
-		interval += 12;
-	}
-//	printf("new_level %d\n", new_level);
-//	printf("interval %d\n", interval);
-
-	int i;
-	char *note_name = NULL;
-	for (i = 0; i < ARRAY_SIZE(note); i++) {
-		if (note[i].steps_from_a4 == interval && note[i].level == new_level)
-			note_name = note[i].name;
-	}
-
-	if (!note_name) {
-		printf("Err: no key symbol is matched.\n");
-		return NULL;
-	} else {
-		get_chord(note_name);
-	}
-	return note_name;
+	printf("%s %s %s %s\n", note_name, get_third_note_by_note(note_name), get_fifth_note_by_note(note_name), get_seventh_note_by_note(note_name));
 }
 
 static const char *get_note_by_symbol(const char *str, int *octave)
@@ -559,7 +414,7 @@ static const char *get_note_by_symbol(const char *str, int *octave)
 	printf("note_level %d\n", note_level);
 	printf("interval %d\n", interval);
 
-	int i;
+	uint32_t i;
 	char *note_name = NULL;
 	for (i = 0; i < ARRAY_SIZE(note); i++) {
 		if (note[i].steps_from_a4 == interval && note[i].level == note_level)
@@ -578,9 +433,6 @@ static const char *get_note_by_symbol(const char *str, int *octave)
 
 
 int main(int argc, char **argv) {
-	int i;
-
-
 	struct simple_table table;
 
 	int ret = get_input_from_file(&table);
@@ -588,32 +440,7 @@ int main(int argc, char **argv) {
 		return -1;
 	float time;
 
-#if 0
-	uint8_t key;
-	for (i = 0; i < ARRAY_SIZE(input); i++) {
-		printf("symbol %c\n", input[i].symbol);
-		key = get_roll_call_by_simple(input[i].symbol, input[i].pitch);
-		if (key < 0)
-			continue;
-		//time = 4.0 / input[i].duration;
-		time = get_time_of_note(&input[i]);
-#if 1
-	for (int j = 0; j < ARRAY_SIZE(Pitch_Name); j++) {
-		if (key == Pitch_Name[j].key) {
-			printf("%s: ", Pitch_Name[j].name);
-			play_sound(Pitch_Name[j].hz, time);
-//			printf("0x%x\n", Pitch_Name[j].key);
-		}
-	}
-#endif
-//		time = 1 * input[i].duration;
-//		play_sound(Pitch_Name[i].hz, time);
-//		printf("0x%x\n", Pitch_Name[i].key);
-	}
-#endif
-
-#if 1
-	for (i = 0; i < table.len; i++) {
+	for (int i = 0; i < table.len; i++) {
 		const char *str = &table.input[i].symbol;
 		if (strlen(str) > 1) {
 			printf("Err len %ld\n", strlen(str));
@@ -626,7 +453,7 @@ int main(int argc, char **argv) {
 			printf("symbol '%s' continue\n", str);
 			continue;
 		} else if (note[0] == '0') {
-			float time = 60.0 / TEMPO * 4.0 / table.input[i].duration;
+			time = 60.0 / TEMPO * 4.0 / table.input[i].duration;
 			struct timespec req, rem;
 			req.tv_sec = 0;
 			req.tv_nsec = time * 1000000000;
@@ -643,16 +470,9 @@ int main(int argc, char **argv) {
 		if (frequency < 0)
 			continue;
 		time = get_time_of_note(&table.input[i]);
-//		play_sound(frequency, time);
+		play_sound(frequency, time);
 	}
-#endif
-	for (i = 0; i < table.len; i++) {
-		const char *str = &table.input[i].symbol;
-		if (strlen(str) > 1) {
-			printf("Err len %ld\n", strlen(str));
-			return -1;
-		}
-	}
+
 	return 0;
 }
 

@@ -1,4 +1,5 @@
-CFLAGS += --std=gnu11 -Wall #-Wextra -Werror -fstack-protector -fPIE
+CFLAGS += --std=gnu11 -Wall -Wextra -Werror -fstack-protector -fPIE
+CFLAGS += -Wno-unused-parameter
 
 
 all:
