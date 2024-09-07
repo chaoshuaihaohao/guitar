@@ -26,6 +26,7 @@ static struct chord_stages stage[] = {
 	{LEVEL_7, 11},
 };
 
+#if 0
 static struct simple_note note[] = {
 	{ KEY_SIGNATURE_C_FLAT, "Cb" , LEVEL_1, -10},
 	{ KEY_SIGNATURE_C, "C", LEVEL_1, -9 },
@@ -48,6 +49,31 @@ static struct simple_note note[] = {
 	{ KEY_SIGNATURE_B_FLAT, "Bb", LEVEL_7, 1 },
 	{ KEY_SIGNATURE_B, "B", LEVEL_7, 2 },
 	{ KEY_SIGNATURE_B_SHARP, "B#", LEVEL_7, 3 },
+};
+
+#endif
+static struct simple_note note[] = {
+	{ KEY_SIGNATURE_C_FLAT, "Cb" , LEVEL_1, 0},
+	{ KEY_SIGNATURE_C, "C", LEVEL_1, 1 },
+	{ KEY_SIGNATURE_C_SHARP, "C#" , LEVEL_1, 2},
+	{ KEY_SIGNATURE_D_FLAT, "Db" , LEVEL_2, 2},
+	{ KEY_SIGNATURE_D, "D" , LEVEL_2, 3},
+	{ KEY_SIGNATURE_D_SHARP, "D#", LEVEL_2, 4 },
+	{ KEY_SIGNATURE_E_FLAT, "Eb", LEVEL_3, 4 },
+	{ KEY_SIGNATURE_E, "E", LEVEL_3, 5 },
+	{ KEY_SIGNATURE_F_FLAT, "Fb", LEVEL_4, 5 },
+	{ KEY_SIGNATURE_E_SHARP, "E#", LEVEL_3, 6 },
+	{ KEY_SIGNATURE_F, "F", LEVEL_4, 6 },
+	{ KEY_SIGNATURE_F_SHARP, "F#", LEVEL_4, 7 },
+	{ KEY_SIGNATURE_G_FLAT, "Gb", LEVEL_5 , 7},
+	{ KEY_SIGNATURE_G, "G", LEVEL_5 , 8},
+	{ KEY_SIGNATURE_G_SHARP, "G#", LEVEL_5 , 9},
+	{ KEY_SIGNATURE_A_FLAT, "Ab", LEVEL_6, 9 },
+	{ KEY_SIGNATURE_A, "A", LEVEL_6, 10 },
+	{ KEY_SIGNATURE_A_SHARP, "A#", LEVEL_6, 11 },
+	{ KEY_SIGNATURE_B_FLAT, "Bb", LEVEL_7, 11 },
+	{ KEY_SIGNATURE_B, "B", LEVEL_7, 0 },
+	{ KEY_SIGNATURE_B_SHARP, "B#", LEVEL_7, 1 },
 };
 
 void play_sound(float hz, float time)
@@ -327,10 +353,10 @@ static char *get_target_note_by_note(const char *note_name, int level, int steps
 			target_level = cur_level + level - LEVEL_1;
 			target_level %= 7;
 			interval = note[i].steps_from_a4 + stage[target_level].step + steps_up_down - stage[cur_level].step;
-			if (interval > 3) {
+			if (interval >= 12) {
 				interval -= 12;
 			}
-			if (interval < -10) {
+			if (interval < 0) {
 				interval += 12;
 			}
 			break;
@@ -408,8 +434,11 @@ static char *get_note_by_level(const int level)
 	int new_level = note[KEY_SIGNATURE].level + level;
 	new_level %= 6;
 	int interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
-	if (interval > 3) {
+	if (interval >= 12) {
 		interval -= 12;
+	}
+	if (interval < 0) {
+		interval += 12;
 	}
 //	printf("new_level %d\n", new_level);
 //	printf("interval %d\n", interval);
@@ -443,7 +472,7 @@ static char *get_note_by_symbol(const char *str, int *octave)
 	case '7':
 		break;
 	default:
-		//printf("INFO: unsupport str %s\n", str);
+		printf("INFO: unsupport str %s\n", str);
 		return NULL;
 	}
 	int level = atoi(&input) - 1;
@@ -452,11 +481,11 @@ static char *get_note_by_symbol(const char *str, int *octave)
 	int note_level = note[KEY_SIGNATURE].level + level - LEVEL_1;
 	note_level %= 7;
 	int interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
-	if (interval > 3) {
+	if (interval >= 12) {
 		interval -= 12;
 		(*octave)++;
 	}
-	if (interval < -10) {
+	if (interval < 0) {
 		interval += 12;
 		(*octave)--;
 	}
