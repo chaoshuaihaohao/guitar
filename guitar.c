@@ -30,32 +30,6 @@ static struct chord_stages stage[] = {
 	{LEVEL_7, 11},
 };
 
-#if 0
-static struct simple_note note[] = {
-	{ KEY_SIGNATURE_C_FLAT, "Cb" , LEVEL_1, -10},
-	{ KEY_SIGNATURE_C, "C", LEVEL_1, -9 },
-	{ KEY_SIGNATURE_C_SHARP, "C#" , LEVEL_1, -8},
-	{ KEY_SIGNATURE_D_FLAT, "Db" , LEVEL_2, -8},
-	{ KEY_SIGNATURE_D, "D" , LEVEL_2, -7},
-	{ KEY_SIGNATURE_D_SHARP, "D#", LEVEL_2, -6 },
-	{ KEY_SIGNATURE_E_FLAT, "Eb", LEVEL_3, -6 },
-	{ KEY_SIGNATURE_E, "E", LEVEL_3, -5 },
-	{ KEY_SIGNATURE_F_FLAT, "Fb", LEVEL_4, -5 },
-	{ KEY_SIGNATURE_E_SHARP, "E#", LEVEL_3, -4 },
-	{ KEY_SIGNATURE_F, "F", LEVEL_4, -4 },
-	{ KEY_SIGNATURE_F_SHARP, "F#", LEVEL_4, -3 },
-	{ KEY_SIGNATURE_G_FLAT, "Gb", LEVEL_5 , -3},
-	{ KEY_SIGNATURE_G, "G", LEVEL_5 , -2},
-	{ KEY_SIGNATURE_G_SHARP, "G#", LEVEL_5 , -1},
-	{ KEY_SIGNATURE_A_FLAT, "Ab", LEVEL_6, -1 },
-	{ KEY_SIGNATURE_A, "A", LEVEL_6, 0 },
-	{ KEY_SIGNATURE_A_SHARP, "A#", LEVEL_6, 1 },
-	{ KEY_SIGNATURE_B_FLAT, "Bb", LEVEL_7, 1 },
-	{ KEY_SIGNATURE_B, "B", LEVEL_7, 2 },
-	{ KEY_SIGNATURE_B_SHARP, "B#", LEVEL_7, 3 },
-};
-
-#endif
 static struct simple_note note[] = {
 	{ KEY_SIGNATURE_C_FLAT, "Cb" , LEVEL_1, 0},
 	{ KEY_SIGNATURE_C, "C", LEVEL_1, 1 },
@@ -115,7 +89,9 @@ static float get_time_of_note(const struct simple_input *input)
 	} while (++next);
 	time *= count;
 		
+#ifdef DEBUG
 	printf("%s: time %f duration %d\n", __func__, time, input[0].duration);
+#endif
 	return time;
 }
 
@@ -193,11 +169,14 @@ static float get_freq_of_note(char *str) {
 	// 计算频率
 	double frequency;
 	frequency = REFERENCE_FREQ * pow(OCTAVE_RATIO, total_steps);
+#ifdef DEBUG
 	printf("steps_from_a4: %d, octave: %d, frequency: %f\n", steps_from_a4, octave, frequency);
+#endif
 	return frequency;
 }
 
-static void dump_simple_table(struct simple_table *table)
+#ifdef DEBUG
+static void print_simple_table(struct simple_table *table)
 {
 	printf("Read %d entries from file.\n", table->len);
 		for (int j = 0; j < table->len; j++) {
@@ -253,6 +232,7 @@ static void dump_simple_table(struct simple_table *table)
 	}
 	printf("\n");
 }
+#endif
 
 static int get_input_from_file(struct simple_table *table)
 {
@@ -282,9 +262,10 @@ static int get_input_from_file(struct simple_table *table)
     // 关闭文件
     fclose(file);
 
+#ifdef DEBUG
     // 打印读取的数据
-    dump_simple_table(table);
-
+    print_simple_table(table);
+#endif
     return EXIT_SUCCESS;
 }
 
@@ -399,7 +380,7 @@ static const char *get_note_by_symbol(const char *str, int *octave)
 	case '0':
 		return str;
 	default:
-		printf("INFO: unsupport str %s\n", str);
+		printf("info: unsupport note of %s\n", str);
 		return NULL;
 	}
 	int level = input - '0' - 1;
@@ -459,7 +440,9 @@ int main(int argc, char **argv) {
 			req.tv_sec = 0;
 			req.tv_nsec = beat_time * 1000000000;
 			nanosleep(&req, &rem);
+#ifdef DEBUG
 			printf("symbol '%s' continue, delay %ld seconds\n", str, req.tv_nsec);
+#endif
 			continue;
 		}
 		char tmp[20];
