@@ -13,6 +13,9 @@
 
 #define TEMPO 120	//节拍
 
+#define BEAT	4
+#define QUARTER	4
+
 #define DEAFULT_OCTAVE	4
 
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
@@ -321,6 +324,18 @@ static int get_input_from_file(struct simple_table *table)
     for (int j = 0; j < table->len; j++) {
         printf("%c %d %d\n", table->input[j].symbol, table->input[j].duration, table->input[j].pitch);
     }
+    double duration = 1.0 / QUARTER * BEAT;
+    double time = 0;
+	for (int j = 0; j < table->len; j++) {
+		if (table->input[j].duration)
+			time += 1 / table->input[j].duration;
+		if (time == duration)
+			printf("\n");
+		else
+			printf("%c ", table->input[j].symbol);
+	}
+
+
 
     return EXIT_SUCCESS;
 }
