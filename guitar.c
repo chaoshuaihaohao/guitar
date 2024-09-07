@@ -90,7 +90,7 @@ void play_sound(float hz, float time)
 #endif
 	system(command);
 
-	sprintf(command, "aplay output.wav > /dev/null");
+	sprintf(command, "aplay output.wav > /dev/null 2>&1");
 #ifdef DEBUG
 	printf("%s\n", command);
 #endif
@@ -382,6 +382,11 @@ void get_chord(char *note_name)
 static const char *get_note_by_symbol(const char *str, int *octave)
 {
 	char input = str[0];
+	uint32_t i;
+	char *note_name = NULL;
+	int note_level;
+	int interval;
+
 	switch (input) {
 	case '1':
 	case '2':
@@ -397,12 +402,12 @@ static const char *get_note_by_symbol(const char *str, int *octave)
 		printf("INFO: unsupport str %s\n", str);
 		return NULL;
 	}
-	int level = atoi(&input) - 1;
+	int level = input - '0' - 1;
 
 	*octave = DEAFULT_OCTAVE;
-	int note_level = note[KEY_SIGNATURE].level + level - LEVEL_1;
+	note_level = note[KEY_SIGNATURE].level + level - LEVEL_1;
 	note_level %= 7;
-	int interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
+	interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
 	if (interval >= 12) {
 		interval -= 12;
 		(*octave)++;
@@ -411,18 +416,14 @@ static const char *get_note_by_symbol(const char *str, int *octave)
 		interval += 12;
 		(*octave)--;
 	}
-	printf("note_level %d\n", note_level);
-	printf("interval %d\n", interval);
 
-	uint32_t i;
-	char *note_name = NULL;
 	for (i = 0; i < ARRAY_SIZE(note); i++) {
 		if (note[i].steps_from_a4 == interval && note[i].level == note_level)
 			note_name = note[i].name;
 	}
 
 	if (!note_name) {
-		printf("Err: no key symbol is matched.\n");
+		printf("Err: no key symbol is matched to symbol %s, note_level %d, interval %d.\n", note_name, note_level, interval);
 		return NULL;
 	} else {
 		get_chord(note_name);
@@ -453,10 +454,10 @@ int main(int argc, char **argv) {
 			printf("symbol '%s' continue\n", str);
 			continue;
 		} else if (note[0] == '0') {
-			time = 60.0 / TEMPO * 4.0 / table.input[i].duration;
+			float beat_time = 60.0 / TEMPO * 4.0 / table.input[i].duration;
 			struct timespec req, rem;
 			req.tv_sec = 0;
-			req.tv_nsec = time * 1000000000;
+			req.tv_nsec = beat_time * 1000000000;
 			nanosleep(&req, &rem);
 			printf("symbol '%s' continue, delay %ld seconds\n", str, req.tv_nsec);
 			continue;
