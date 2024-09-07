@@ -456,6 +456,10 @@ static char *get_note_by_symbol(const char *str, int *octave)
 		interval -= 12;
 		(*octave)++;
 	}
+	if (interval < -10) {
+		interval += 12;
+		(*octave)--;
+	}
 //	printf("new_level %d\n", new_level);
 //	printf("interval %d\n", interval);
 
