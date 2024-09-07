@@ -36,7 +36,8 @@ static struct simple_note note[] = {
 	{ KEY_SIGNATURE_C_SHARP, "C#" , LEVEL_1, 2},
 	{ KEY_SIGNATURE_D_FLAT, "Db" , LEVEL_2, 2},
 	{ KEY_SIGNATURE_D, "D" , LEVEL_2, 3},
-	{ KEY_SIGNATURE_D_SHARP, "D#", LEVEL_2, 4 },
+	{ KEY_SIGNATURE_D_SHARP, "D#", LEVEL_2, 4 },	//没有D#调，因为D#
+//	E#后面是F##，没有这个音.
 	{ KEY_SIGNATURE_E_FLAT, "Eb", LEVEL_3, 4 },
 	{ KEY_SIGNATURE_E, "E", LEVEL_3, 5 },
 	{ KEY_SIGNATURE_F_FLAT, "Fb", LEVEL_4, 5 },
@@ -413,11 +414,26 @@ static const char *get_note_by_symbol(const char *str, int *octave)
 	return note_name;
 }
 
+static int simple_check()
+{
+	if (KEY_SIGNATURE == KEY_SIGNATURE_D_SHARP) {
+		printf("ERR: unsupport key 'D#', Please use key Eb\n");
+		return -1;
+	}
+	return 0;
+}
 
 int main(int argc, char **argv) {
+
+	int ret;
+
+	ret = simple_check();
+	if (ret < 0)
+		return -1;
+
 	struct simple_table table;
 
-	int ret = get_input_from_file(&table);
+	ret = get_input_from_file(&table);
 	if (ret < 0)
 		return -1;
 	float time;
