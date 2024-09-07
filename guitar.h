@@ -60,10 +60,14 @@ struct simple_input {
 };
 
 #define MAX_INPUT_SIZE 1024
+#define MAX_SECTION_SIZE 256
 
 struct simple_table {
 	struct simple_input input[MAX_INPUT_SIZE];
 	int len;
+	int section_start[MAX_SECTION_SIZE];	//the end input index of section
+	int section_end[MAX_SECTION_SIZE];
+	int section_count;
 };
 
 

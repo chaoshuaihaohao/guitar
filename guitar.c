@@ -11,7 +11,8 @@
 #define KEY_SIGNATURE  KEY_SIGNATURE_F 		//: 调号
 //#define KEY_SIGNATURE  KEY_SIGNATURE_B_FLAT 	//: 调号
 
-#define TEMPO 120	//节拍
+#define TEMPO (120)	//节拍
+#define BEAT_TIME  (60.0 / TEMPO * 4.0)
 
 #define BEAT	4
 #define QUARTER	4
@@ -75,7 +76,7 @@ void play_sound(float hz, float time)
 static float get_time_of_note(const struct simple_input *input)
 {
 	const struct simple_input *next = input + 1;
-	float time = 60.0 / TEMPO * 4.0 / input[0].duration;
+	float time = BEAT_TIME / input[0].duration;
 	float count = 1;
 
 	do {
@@ -184,7 +185,7 @@ static void print_simple_table(struct simple_table *table)
 		printf("%c %d %d\n", table->input[j].symbol, table->input[j].duration, table->input[j].pitch);
 	}
 	double duration = 1.0 / QUARTER * BEAT;
-	double time = 0;
+	double beat_count = 0;
 	int count = 0;
 	int tmp = 0;
 	for (int j = 0; j < table->len; j++) {
@@ -198,9 +199,9 @@ static void print_simple_table(struct simple_table *table)
 		}
 		printf("%c", table->input[j].symbol);
 		if (table->input[j].duration)
-			time += 1.0 / table->input[j].duration;
-		if (time == duration) {
-			time = 0;
+			beat_count += 1.0 / table->input[j].duration;
+		if (beat_count == duration) {
+			beat_count = 0;
 			printf("|");
 			count++;
 			if (count % 4 == 0) {
@@ -218,15 +219,15 @@ static void print_simple_table(struct simple_table *table)
 						break;
 					}
 					if (table->input[k].duration)
-						time += 1.0 / table->input[k].duration;
-					if (time == duration) {
-						time = 0;
+						beat_count += 1.0 / table->input[k].duration;
+					if (beat_count == duration) {
+						beat_count = 0;
 						printf("|");
 					}
 				}
 				tmp = j+1;
 				printf("\n");
-				time = 0;
+				beat_count = 0;
 
 			}
 		}
@@ -234,6 +235,41 @@ static void print_simple_table(struct simple_table *table)
 	printf("\n");
 }
 #endif
+
+static void init_table_section_index(struct simple_table *table)
+{
+	double section_beat = 1.0 / QUARTER * BEAT;
+	double beat_count = 0;
+	int section_count = 0;
+
+	for (int j = 0; j < table->len; j++) {
+		if (table->input[j].duration)
+			beat_count += 1.0 / table->input[j].duration;
+		if (beat_count == section_beat) {
+			if (section_count == 0) {
+				table->section_start[section_count] = 0;
+			} else {
+				table->section_start[section_count] = table->section_end[section_count - 1] + 1;
+			}
+			table->section_end[section_count] = j;
+			beat_count = 0;
+			section_count++;
+		}
+	}
+	table->section_count = section_count;
+//#ifdef DEBUG
+	for (int i = 0; i < table->section_count; i++) {
+		if (i % 4 == 0)
+			printf("\n");
+		for (int j = table->section_start[i]; j <= table->section_end[i]; j++) {
+			printf("%c ", table->input[j].symbol);
+		}
+		printf("| ");
+	}
+
+	printf("\n");
+//#endif
+}
 
 static int get_input_from_file(struct simple_table *table)
 {
@@ -267,6 +303,7 @@ static int get_input_from_file(struct simple_table *table)
     // 打印读取的数据
     print_simple_table(table);
 #endif
+    init_table_section_index(table);
     return EXIT_SUCCESS;
 }
 
@@ -436,6 +473,7 @@ int main(int argc, char **argv) {
 	ret = get_input_from_file(&table);
 	if (ret < 0)
 		return -1;
+
 	float time;
 
 	for (int i = 0; i < table.len; i++) {
@@ -451,7 +489,7 @@ int main(int argc, char **argv) {
 			printf("symbol '%s' continue\n", str);
 			continue;
 		} else if (note[0] == '0') {
-			float beat_time = 60.0 / TEMPO * 4.0 / table.input[i].duration;
+			float beat_time = BEAT_TIME / table.input[i].duration;
 			struct timespec req, rem;
 			req.tv_sec = 0;
 			req.tv_nsec = beat_time * 1000000000;
