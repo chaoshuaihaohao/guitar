@@ -1,5 +1,20 @@
 #ifndef __GUITAR_H__
 
+//#define KEY_SIGNATURE  KEY_SIGNATURE_C_SHARP  //: 调号
+#define KEY_SIGNATURE  KEY_SIGNATURE_F 		//: 调号
+//#define KEY_SIGNATURE  KEY_SIGNATURE_B_FLAT 	//: 调号
+
+#define TEMPO (120)	//节拍
+#define BEAT_TIME  (60.0 / TEMPO * 4.0)
+
+#define BEAT	4
+#define QUARTER	4
+
+#define DEAFULT_OCTAVE	4
+
+#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
+
+
 enum LEVEL {
 	LEVEL_1,
 	LEVEL_2,
@@ -62,13 +77,30 @@ struct simple_input {
 #define MAX_INPUT_SIZE 1024
 #define MAX_SECTION_SIZE 256
 
+struct MatchDegree {
+	int score[7];
+	int symbol_count;
+};
+
+enum Chord_Type {
+	THIRD,
+	SEVENTH,
+	NINTH,
+};
+
+#define CHORD_TYPE 3
 struct simple_table {
 	struct simple_input input[MAX_INPUT_SIZE];
 	int len;
 	int section_start[MAX_SECTION_SIZE];	//the end input index of section
 	int section_end[MAX_SECTION_SIZE];
 	int section_count;
+	struct MatchDegree degree[CHORD_TYPE][MAX_SECTION_SIZE];
 };
 
+const char *get_note_by_symbol(const char *str, int *octave);
+float get_freq_of_note(char *str);
+float get_time_of_note(const struct simple_input *input);
+void play_sound(float hz, float time);
 
 #endif  //__GUITAR_H__

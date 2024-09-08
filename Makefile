@@ -3,4 +3,4 @@ CFLAGS += -Wno-unused-parameter
 
 
 all:
-	gcc guitar.c -lm -g -O0  $(CFLAGS)
+	gcc guitar.c table.c -lm -g -O0  $(CFLAGS)
