@@ -134,7 +134,7 @@ static int table_init_input(struct simple_table *table)
 }
 
 
-int table_play_sound(struct simple_table *table)
+int table_play_song(struct simple_table *table)
 {
 	float time;
 	for (int i = 0; i < table->len; i++) {

@@ -22,7 +22,7 @@ struct Ninth {
 
 void table_print_input(struct simple_table *table);
 void table_print_section(struct simple_table *table);
-int table_play_sound(struct simple_table *table);
+int table_play_song(struct simple_table *table);
 void table_init(struct simple_table *table);
 void chord_match_degree(struct simple_table *table);
 #endif  //__TABLE_H__

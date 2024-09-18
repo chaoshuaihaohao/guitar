@@ -313,7 +313,7 @@ int main(int argc, char **argv) {
 
 	table_init(&table);
 	chord_match_degree(&table);
-//	table_play_song(&table);
+	table_play_song(&table);
 
 	return 0;
 }
