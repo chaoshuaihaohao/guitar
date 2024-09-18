@@ -206,8 +206,10 @@ void table_init_third_chord_match_degree(struct simple_table *table, int index)
 		}
 	}
 	printf("\n");
+#ifdef DEBUG
 	for (int q = 0; q < 7; q++)
 		printf("level %d table->degree[THIRD]: %f, score %d symbol_count %d\n", q + 1,(float)table->degree[THIRD][index].score[q] / table->degree[THIRD][index].symbol_count, table->degree[THIRD][index].score[q], table->degree[THIRD][index].symbol_count);
+#endif
 }
 
 //index: section index
@@ -238,8 +240,10 @@ void table_init_seventh_chord_match_degree(struct simple_table *table, int index
 		}
 	}
 	printf("\n");
+#ifdef DEBUG
 	for (int q = 0; q < 7; q++)
 		printf("level %d table->degree[SEVENTH]: %f, score %d symbol_count %d\n", q + 1,(float)table->degree[SEVENTH][index].score[q] / table->degree[SEVENTH][index].symbol_count, table->degree[SEVENTH][index].score[q], table->degree[SEVENTH][index].symbol_count);
+#endif
 }
 
 //index: section index
@@ -272,16 +276,42 @@ void table_init_ninth_chord_match_degree(struct simple_table *table, int index)
 		}
 	}
 	printf("\n");
+#ifdef DEBUG
 	for (int q = 0; q < 7; q++)
 		printf("level %d table->degree[NINTH]: %f, score %d symbol_count %d\n", q + 1,(float)table->degree[NINTH][index].score[q] / table->degree[NINTH][index].symbol_count, table->degree[NINTH][index].score[q], table->degree[NINTH][index].symbol_count);
+#endif
+}
+
+static void get_the_section_chord(struct simple_table *table, int chord, int index)
+{
+#if 1
+	int max = table->degree[chord][index].score[0]; // 假设第一个元素是最大的
+	int count = 0;
+
+	for (int j = 1; j < 7; j++) {
+		if (table->degree[chord][index].score[j] > max) {
+		    max = table->degree[chord][index].score[j]; // 找到更大的值，更新最大值
+		    count = j;
+		}
+	}
+
+	printf("The chord series with the highest matching degree of section %d is: %d, level [%d]\n", index, max, count+1);
+#endif
+
 }
 
 void chord_match_degree(struct simple_table *table)
 {
 	for (int i = 0; i < table->section_count; i++) {
 		table_init_third_chord_match_degree(table, i);
+		get_the_section_chord(table, THIRD, i);
+
 		table_init_seventh_chord_match_degree(table, i);
+		get_the_section_chord(table, SEVENTH, i);
+#if 1
 		table_init_ninth_chord_match_degree(table, i);
+		get_the_section_chord(table, NINTH, i);
+#endif
 	}
 }
 
