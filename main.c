@@ -5,36 +5,37 @@
 #include <stdbool.h>
 #include <math.h>
 #include <time.h>
-#include "guitar.h"
+#include "main.h"
 #include "table.h"
+#include "play.h"
 
 static struct chord_stages stage[] = {
-	{LEVEL_1, 0},
-	{LEVEL_2, 2},
-	{LEVEL_3, 4},
-	{LEVEL_4, 5},
-	{LEVEL_5, 7},
-	{LEVEL_6, 9},
-	{LEVEL_7, 11},
+	{ LEVEL_1, 0 },
+	{ LEVEL_2, 2 },
+	{ LEVEL_3, 4 },
+	{ LEVEL_4, 5 },
+	{ LEVEL_5, 7 },
+	{ LEVEL_6, 9 },
+	{ LEVEL_7, 11 },
 };
 
 static struct simple_note note[] = {
-	{ KEY_SIGNATURE_C_FLAT, "Cb" , LEVEL_1, 0},
+	{ KEY_SIGNATURE_C_FLAT, "Cb", LEVEL_1, 0 },
 	{ KEY_SIGNATURE_C, "C", LEVEL_1, 1 },
-	{ KEY_SIGNATURE_C_SHARP, "C#" , LEVEL_1, 2},
-	{ KEY_SIGNATURE_D_FLAT, "Db" , LEVEL_2, 2},
-	{ KEY_SIGNATURE_D, "D" , LEVEL_2, 3},
+	{ KEY_SIGNATURE_C_SHARP, "C#", LEVEL_1, 2 },
+	{ KEY_SIGNATURE_D_FLAT, "Db", LEVEL_2, 2 },
+	{ KEY_SIGNATURE_D, "D", LEVEL_2, 3 },
 	{ KEY_SIGNATURE_D_SHARP, "D#", LEVEL_2, 4 },	//没有D#调，因为D#
-//	E#后面是F##，没有这个音.
+//      E#后面是F##，没有这个音.
 	{ KEY_SIGNATURE_E_FLAT, "Eb", LEVEL_3, 4 },
 	{ KEY_SIGNATURE_E, "E", LEVEL_3, 5 },
 	{ KEY_SIGNATURE_F_FLAT, "Fb", LEVEL_4, 5 },
 	{ KEY_SIGNATURE_E_SHARP, "E#", LEVEL_3, 6 },
 	{ KEY_SIGNATURE_F, "F", LEVEL_4, 6 },
 	{ KEY_SIGNATURE_F_SHARP, "F#", LEVEL_4, 7 },
-	{ KEY_SIGNATURE_G_FLAT, "Gb", LEVEL_5 , 7},
-	{ KEY_SIGNATURE_G, "G", LEVEL_5 , 8},
-	{ KEY_SIGNATURE_G_SHARP, "G#", LEVEL_5 , 9},
+	{ KEY_SIGNATURE_G_FLAT, "Gb", LEVEL_5, 7 },
+	{ KEY_SIGNATURE_G, "G", LEVEL_5, 8 },
+	{ KEY_SIGNATURE_G_SHARP, "G#", LEVEL_5, 9 },
 	{ KEY_SIGNATURE_A_FLAT, "Ab", LEVEL_6, 9 },
 	{ KEY_SIGNATURE_A, "A", LEVEL_6, 10 },
 	{ KEY_SIGNATURE_A_SHARP, "A#", LEVEL_6, 11 },
@@ -42,23 +43,6 @@ static struct simple_note note[] = {
 	{ KEY_SIGNATURE_B, "B", LEVEL_7, 0 },
 	{ KEY_SIGNATURE_B_SHARP, "B#", LEVEL_7, 1 },
 };
-
-void play_sound(float hz, float time)
-{
-	char command[256];
-
-	sprintf(command, "sox -q -n output.wav synth %f sine %f", time, hz);
-#ifdef DEBUG
-	printf("%s\n", command);
-#endif
-	system(command);
-
-	sprintf(command, "aplay output.wav > /dev/null 2>&1");
-#ifdef DEBUG
-	printf("%s\n", command);
-#endif
-	system(command);
-}
 
 float get_time_of_note(const struct simple_input *input)
 {
@@ -77,19 +61,18 @@ float get_time_of_note(const struct simple_input *input)
 
 	} while (++next);
 	time *= count;
-		
-#ifdef DEBUG
-	printf("%s: time %f duration %d\n", __func__, time, input[0].duration);
-#endif
+
+	mc_info("%s: time %f duration %d", __func__, time, input[0].duration);
 	return time;
 }
 
-float get_freq_of_note(char *str) {
+float get_freq_of_note(char *str)
+{
 	int steps_from_a4;
 	int octave;
 	bool next = false;
 
-    //int steps_from_a4[] = {-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2}; // C, C#/Db, D, D#/Eb, E, F, F#/Gb, G, G#/Ab, A, A#/Bb, B
+	//int steps_from_a4[] = {-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2}; // C, C#/Db, D, D#/Eb, E, F, F#/Gb, G, G#/Ab, A, A#/Bb, B
 
 	switch (str[0]) {
 	case 'C':
@@ -114,7 +97,7 @@ float get_freq_of_note(char *str) {
 		steps_from_a4 = 2;
 		break;
 	default:
-		printf("Err: unsupport str %s\n", str);
+		mc_err("Err: unsupport str %s", str);
 		return -1;
 		break;
 	}
@@ -138,45 +121,50 @@ float get_freq_of_note(char *str) {
 		case '6':
 		case '7':
 			if (str[2 + !!next] != '\0') {
-				printf("Err: unsupport str %s\n", str);
+				mc_err("Err: unsupport str %s", str);
 				return -1;
 			}
 			octave = atoi(&str[1 + !!next]);
 			next = false;
 			break;
 		default:
-			printf("Err: unsupport str %s\n", str);
+			mc_err("Err: unsupport str %s", str);
 			return -1;
 		}
-	
+
 	} while (next);
 
-#define REFERENCE_FREQ 440.0 // A4的频率
-#define OCTAVE_RATIO 1.05946 // 两个半音之间的频率比
+#define REFERENCE_FREQ 440.0	// A4的频率
+#define OCTAVE_RATIO 1.05946	// 两个半音之间的频率比
 	// 计算总的半音步数
 	int total_steps = steps_from_a4 + (octave - 4) * 12;
 	// 计算频率
 	double frequency;
 	frequency = REFERENCE_FREQ * pow(OCTAVE_RATIO, total_steps);
 #ifdef DEBUG
-	printf("steps_from_a4: %d, octave: %d, frequency: %f\n", steps_from_a4, octave, frequency);
+	mc_info("steps_from_a4: %d, octave: %d, frequency: %f", steps_from_a4,
+		octave, frequency);
 #endif
 	return frequency;
 }
 
-static char *get_target_note_by_note(const char *note_name, int level, int steps_up_down)
+#if 1
+static char *get_target_note_by_note(const char *note_name, int level,
+				     int steps_up_down)
 {
 	uint32_t i;
 	int interval;
 	int cur_level, target_level;
 	char *target_note;
 
-	for(i = 0; i < ARRAY_SIZE(note); i++) {
+	for (i = 0; i < ARRAY_SIZE(note); i++) {
 		if (strcmp(note_name, note[i].name) == 0) {
 			cur_level = note[i].level;
 			target_level = cur_level + level - LEVEL_1;
 			target_level %= 7;
-			interval = note[i].steps_from_a4 + stage[target_level].step + steps_up_down - stage[cur_level].step;
+			interval =
+			    note[i].steps_from_a4 + stage[target_level].step +
+			    steps_up_down - stage[cur_level].step;
 			if (interval >= 12) {
 				interval -= 12;
 			}
@@ -187,12 +175,13 @@ static char *get_target_note_by_note(const char *note_name, int level, int steps
 		}
 	}
 	for (i = 0; i < ARRAY_SIZE(note); i++) {
-		if (note[i].steps_from_a4 == interval && note[i].level == target_level)
+		if (note[i].steps_from_a4 == interval
+		    && note[i].level == target_level)
 			target_note = note[i].name;
 	}
 
 	if (!target_note) {
-		printf("Err: no key symbol is matched.\n");
+		mc_debug("Err: no key symbol is matched.");
 		return NULL;
 	}
 	return target_note;
@@ -204,7 +193,7 @@ static char *get_third_note_by_note(const char *note_name)
 
 	target_note = get_target_note_by_note(note_name, LEVEL_3, 0);
 	if (!target_note) {
-		printf("Err: no key symbol is matched.\n");
+		mc_debug("Err: no key symbol is matched.");
 		return NULL;
 	}
 	return target_note;
@@ -216,7 +205,7 @@ static char *get_fifth_note_by_note(const char *note_name)
 
 	target_note = get_target_note_by_note(note_name, LEVEL_5, 0);
 	if (!target_note) {
-		printf("Err: no key symbol is matched.\n");
+		mc_debug("Err: no key symbol is matched.");
 		return NULL;
 	}
 	return target_note;
@@ -228,15 +217,18 @@ static char *get_seventh_note_by_note(const char *note_name)
 
 	target_note = get_target_note_by_note(note_name, LEVEL_7, 0);
 	if (!target_note) {
-		printf("Err: no key symbol is matched.\n");
+		mc_debug("Err: no key symbol is matched.");
 		return NULL;
 	}
 	return target_note;
 }
-
-void get_chord(char *note_name) 
+#endif
+void get_chord(const char *note_name)
 {
-	printf("%s %s %s %s\n", note_name, get_third_note_by_note(note_name), get_fifth_note_by_note(note_name), get_seventh_note_by_note(note_name));
+	mc_info("note name %s: %s %s %s", note_name,
+		get_third_note_by_note(note_name),
+		get_fifth_note_by_note(note_name),
+		get_seventh_note_by_note(note_name));
 }
 
 const char *get_note_by_symbol(const char *str, int *octave)
@@ -259,7 +251,7 @@ const char *get_note_by_symbol(const char *str, int *octave)
 	case '0':
 		return str;
 	default:
-		printf("info: unsupport note of %s\n", str);
+		mc_debug("info: unsupport note of %s", str);
 		return NULL;
 	}
 	int level = input - '0' - 1;
@@ -267,7 +259,9 @@ const char *get_note_by_symbol(const char *str, int *octave)
 	*octave = DEAFULT_OCTAVE;
 	note_level = note[KEY_SIGNATURE].level + level - LEVEL_1;
 	note_level %= 7;
-	interval = note[KEY_SIGNATURE].steps_from_a4 + stage[level].step - stage[LEVEL_1].step;
+	interval =
+	    note[KEY_SIGNATURE].steps_from_a4 + stage[level].step -
+	    stage[LEVEL_1].step;
 	if (interval >= 12) {
 		interval -= 12;
 		(*octave)++;
@@ -278,16 +272,19 @@ const char *get_note_by_symbol(const char *str, int *octave)
 	}
 
 	for (i = 0; i < ARRAY_SIZE(note); i++) {
-		if (note[i].steps_from_a4 == interval && note[i].level == note_level)
+		if (note[i].steps_from_a4 == interval
+		    && note[i].level == note_level)
 			note_name = note[i].name;
 	}
 
 	if (!note_name) {
-		printf("Err: no key symbol is matched to symbol %s, note_level %d, interval %d.\n", note_name, note_level, interval);
+		mc_err
+		    ("Err: no key symbol is matched to symbol %s, note_level %d, interval %d.",
+		     note_name, note_level, interval);
 		return NULL;
 	} else {
-		get_chord(note_name);
-	
+		//get_chord(note_name);
+
 	}
 	return note_name;
 }
@@ -295,13 +292,14 @@ const char *get_note_by_symbol(const char *str, int *octave)
 static int simple_check()
 {
 	if (KEY_SIGNATURE == KEY_SIGNATURE_D_SHARP) {
-		printf("ERR: unsupport key 'D#', Please use key Eb\n");
+		mc_err("ERR: unsupport key 'D#', Please use key Eb");
 		return -1;
 	}
 	return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
 	int ret;
 
@@ -313,8 +311,8 @@ int main(int argc, char **argv) {
 
 	table_init(&table);
 	chord_match_degree(&table);
-	table_play_song(&table);
+//	table_play_song(&table);
+	table_play_song_section(&table);
 
 	return 0;
 }
-

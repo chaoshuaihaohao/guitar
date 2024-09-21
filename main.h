@@ -77,30 +77,47 @@ struct simple_input {
 #define MAX_INPUT_SIZE 1024
 #define MAX_SECTION_SIZE 256
 
+
+#define MATCH_DEGREE_SCORE_NUM	7
 struct MatchDegree {
-	int score[7];
+	int score[MATCH_DEGREE_SCORE_NUM];
 	int symbol_count;
 };
 
 enum Chord_Type {
-	THIRD,
-	SEVENTH,
-	NINTH,
+	THIRD = 3,
+	SEVENTH = 7,
+	NINTH = 9,
+	CHORD_NUM,
 };
 
 #define CHORD_TYPE 3
+
+/*
+ * @len: length of input
+ */
 struct simple_table {
 	struct simple_input input[MAX_INPUT_SIZE];
-	int len;
+	int len;	//input len
 	int section_start[MAX_SECTION_SIZE];	//the end input index of section
 	int section_end[MAX_SECTION_SIZE];
 	int section_count;
-	struct MatchDegree degree[CHORD_TYPE][MAX_SECTION_SIZE];
+	struct MatchDegree degree[CHORD_NUM][MAX_SECTION_SIZE];
 };
 
 const char *get_note_by_symbol(const char *str, int *octave);
 float get_freq_of_note(char *str);
 float get_time_of_note(const struct simple_input *input);
 void play_sound(float hz, float time);
+void get_chord(const char *note_name);
+
+#define mc_err(f, arg...) \
+        fprintf(stderr, "ERR:[%s:%d]: " f "\n", __func__, __LINE__, ##arg)
+#define mc_info(f, arg...) \
+        printf("INFO:[%s:%d]:" f "\n", __func__, __LINE__, ##arg)
+#define mc_warn(f, arg...) \
+        printf("WARN:[%s:%d]:" f "\n", __func__, __LINE__, ##arg)
+#define mc_debug(f, arg...) \
+//	printf("DBG:[%s:%d]:" f "\n", __func__, __LINE__, ##arg)
 
 #endif  //__GUITAR_H__
