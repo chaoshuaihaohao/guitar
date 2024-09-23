@@ -109,7 +109,7 @@ const char *get_note_by_symbol(const char *str, int *octave);
 float get_freq_of_note(char *str);
 float get_time_of_note(const struct simple_input *input);
 void play_sound(float hz, float time);
-void get_chord(const char *note_name);
+void get_chord(const char *note_name, int octave, int chord);
 
 #define mc_err(f, arg...) \
         fprintf(stderr, "ERR:[%s:%d]: " f "\n", __func__, __LINE__, ##arg)

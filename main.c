@@ -223,12 +223,24 @@ static char *get_seventh_note_by_note(const char *note_name)
 	return target_note;
 }
 #endif
-void get_chord(const char *note_name)
+
+/*
+ * input note name
+ * output chord string
+ */
+void get_chord(const char *note_name, int octave, int chord)
 {
+#if 1
+	mc_info("note name %s%d", note_name, octave);
+	mc_info("note name %s%d", get_third_note_by_note(note_name), octave);
+	mc_info("note name %s%d", get_fifth_note_by_note(note_name), octave);
+	mc_info("note name %s%d", get_seventh_note_by_note(note_name), octave);
+#else
 	mc_info("note name %s: %s %s %s", note_name,
 		get_third_note_by_note(note_name),
 		get_fifth_note_by_note(note_name),
 		get_seventh_note_by_note(note_name));
+#endif
 }
 
 const char *get_note_by_symbol(const char *str, int *octave)

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include <math.h>
 #include <time.h>
 #include "main.h"
@@ -76,21 +77,28 @@ int table_play_song(struct simple_table *table)
 	return 0;
 }
 
+void *play_chord(void *arg) {
+    // 播放 C 大三和弦 C4-E4-G4，持续时间为 2 秒
+
 #if 0
-void play_chord(char *note, int octave)
-{
-	get_chord_of_section();
+	system("sox -n -d synth 0.5 sine 392 &");
+	system("sox -n -d synth 0.5 sine 493 &");
+	system("sox -n -d synth 0.5 sine 578 &");
+#else
+	system("sox -n -d synth 0.5 sine 349.232311 &");
+	system("sox -n -d synth 0.5 sine 440 &");
+	system("sox -n -d synth 0.5 sine 523.246546 &");
 
-	thread(play_chord_of_section());
-	for (int i = 0; i < table->section[j].len; i++)
-		play_note_of_section(note);
 
-}
 #endif
+    return NULL;
+}
 int table_play_song_section(struct simple_table *table)
 {
-
+	pthread_t thread_id;
+	int status;
 	float time;
+
 	for (int j = 0; j < table->section_count; j++) {
 		/* Get chord of section */
 		table_init_third_chord_match_degree(table, j);
@@ -98,9 +106,14 @@ int table_play_song_section(struct simple_table *table)
 		table_init_ninth_chord_match_degree(table, j);
 
 		uint8_t bitmap = 0;
+		int chord = 0;
 		if (get_the_section_chord(table, THIRD, j, &bitmap)) {
+			chord = THIRD;
 		} else if (get_the_section_chord(table, SEVENTH, j, &bitmap)) {
-		} else if (get_the_section_chord(table, NINTH, j, &bitmap)) {
+			chord = SEVENTH;
+		//} else if (get_the_section_chord(table, NINTH, j, &bitmap)) {
+		} else {
+			chord = NINTH;
 		}
 
 		for (int i = 0; i < 7; i++) {
@@ -109,13 +122,18 @@ int table_play_song_section(struct simple_table *table)
 				int octave;
 				const char *note = get_note_by_symbol(&symbol, &octave);
 				mc_info("bitmap = %x, symbol %c", bitmap, symbol);
-				get_chord(note);
+				get_chord(note, octave, chord);
 				break;
 			}
 		}
 		/* Thread to play chord */
 		//TODO
-
+	    // 创建线程
+	    status = pthread_create(&thread_id, NULL, play_chord, NULL);
+	    if (status != 0) {
+		fprintf(stderr, "Error creating thread: %d\n", status);
+		exit(1);
+	    }
 
 		/* Play note of section */
 		for (int i = table->section_start[j];
@@ -152,6 +170,15 @@ int table_play_song_section(struct simple_table *table)
 			time = get_time_of_note(&table->input[i]);
 			play_sound(frequency, time);
 		}
+    // 等待线程完成
+    status = pthread_join(thread_id, NULL);
+    if (status != 0) {
+        fprintf(stderr, "Error joining thread: %d\n", status);
+        exit(1);
+    }
+
+    printf("Thread finished execution.\n");
+
 	}
 	return 0;
 }
