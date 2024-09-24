@@ -19,7 +19,7 @@ static struct chord_stages stage[] = {
 	{ LEVEL_7, 11 },
 };
 
-static struct simple_note note[] = {
+struct simple_note note[] = {
 	{ KEY_SIGNATURE_C_FLAT, "Cb", LEVEL_1, 0 },
 	{ KEY_SIGNATURE_C, "C", LEVEL_1, 1 },
 	{ KEY_SIGNATURE_C_SHARP, "C#", LEVEL_1, 2 },
@@ -44,10 +44,22 @@ static struct simple_note note[] = {
 	{ KEY_SIGNATURE_B_SHARP, "B#", LEVEL_7, 1 },
 };
 
-float get_time_of_note(const struct simple_input *input)
+int find_key_signature(char *value)
+{
+	for (int i = 0; i < ARRAY_SIZE(note); i++) {
+		if (strcmp(value, note[i].name) == 0) {
+			return note[i].key;
+		}
+	}
+	return -1;
+}
+
+float get_time_by_input(const struct simple_input *input)
 {
 	const struct simple_input *next = input + 1;
-	float time = BEAT_TIME / input[0].duration;
+	const struct simple_table *table = input->table;
+	float beat_time = 60.0 / table->tempo;
+	float time = beat_time * table->duration / input[0].duration;
 	float count = 1;
 
 	do {
@@ -62,19 +74,21 @@ float get_time_of_note(const struct simple_input *input)
 	} while (++next);
 	time *= count;
 
-	mc_info("%s: time %f duration %d", __func__, time, input[0].duration);
+	mc_info("time %f", time);
 	return time;
 }
 
-float get_freq_of_note(char *str)
+float get_freq_by_notes(char *notes)
 {
 	int steps_from_a4;
 	int octave;
 	bool next = false;
 
+	if (!notes)
+		return -1;
 	//int steps_from_a4[] = {-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2}; // C, C#/Db, D, D#/Eb, E, F, F#/Gb, G, G#/Ab, A, A#/Bb, B
 
-	switch (str[0]) {
+	switch (notes[0]) {
 	case 'C':
 		steps_from_a4 = -9;
 		break;
@@ -97,13 +111,13 @@ float get_freq_of_note(char *str)
 		steps_from_a4 = 2;
 		break;
 	default:
-		mc_err("Err: unsupport str %s", str);
+		mc_debug("Err: unsupport notes %s", notes);
 		return -1;
 		break;
 	}
 
 	do {
-		switch (str[1 + !!next]) {
+		switch (notes[1 + !!next]) {
 		case '#':
 			steps_from_a4++;
 			next = true;
@@ -120,15 +134,15 @@ float get_freq_of_note(char *str)
 		case '5':
 		case '6':
 		case '7':
-			if (str[2 + !!next] != '\0') {
-				mc_err("Err: unsupport str %s", str);
+			if (notes[2 + !!next] != '\0') {
+				mc_err("Err: unsupport notes %s", notes);
 				return -1;
 			}
-			octave = atoi(&str[1 + !!next]);
+			octave = atoi(&notes[1 + !!next]);
 			next = false;
 			break;
 		default:
-			mc_err("Err: unsupport str %s", str);
+			mc_err("Err: unsupport notes %s", notes);
 			return -1;
 		}
 
@@ -243,6 +257,68 @@ void get_chord(const char *note_name, int octave, int chord)
 #endif
 }
 
+#if 1
+const char *get_notes_by_input(const struct simple_input *input, char *notes)
+{
+	char symbol = input->symbol;
+	uint32_t i;
+	char *note_name = NULL;
+	int note_level;
+	int interval;
+
+	switch (symbol) {
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+		break;
+	case '0':
+		return &input->symbol;
+	default:
+		mc_info("skip special symbol of %c", symbol);
+		return NULL;
+	}
+	int level = symbol - '1';
+
+	int octave = DEAFULT_OCTAVE + input->pitch;
+	note_level = note[input->table->key_signature].level + level - LEVEL_1;
+	note_level %= 7;
+	interval =
+	    note[input->table->key_signature].steps_from_a4 + stage[level].step -
+	    stage[LEVEL_1].step;
+	if (interval >= 12) {
+		interval -= 12;
+		octave++;
+	}
+	if (interval < 0) {
+		interval += 12;
+		octave--;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(note); i++) {
+		if (note[i].steps_from_a4 == interval
+		    && note[i].level == note_level)
+			note_name = note[i].name;
+	}
+
+	if (!note_name) {
+		mc_err
+		    ("Err: no key symbol is matched to symbol %s, note_level %d, interval %d.",
+		     note_name, note_level, interval);
+		return NULL;
+	} else {
+		//get_chord(note_name);
+
+	}
+	mc_info("note_name = %s, octave = %d", note_name, octave);
+	sprintf(notes, "%s%d", note_name, octave);
+	mc_info("notes = %s", notes);
+	return NULL;
+}
+#endif
 const char *get_note_by_symbol(const char *str, int *octave)
 {
 	char input = str[0];
@@ -321,10 +397,10 @@ int main(int argc, char **argv)
 
 	struct simple_table table;
 
-	table_init(&table);
+	table_init(argv[1], &table);
 	chord_match_degree(&table);
-//	table_play_song(&table);
-	table_play_song_section(&table);
+	table_play_song(&table);
+//	table_play_song_section(&table);
 
 	return 0;
 }

@@ -1,4 +1,5 @@
 #ifndef __GUITAR_H__
+#define __GUITAR_H__
 
 //#define KEY_SIGNATURE  KEY_SIGNATURE_C_SHARP  //: 调号
 #define KEY_SIGNATURE  KEY_SIGNATURE_F 		//: 调号
@@ -72,6 +73,7 @@ struct simple_input {
 	char symbol;
 	int duration;
 	int pitch;//音高
+	const struct simple_table *table;
 };
 
 #define MAX_INPUT_SIZE 1024
@@ -103,13 +105,19 @@ struct simple_table {
 	int section_end[MAX_SECTION_SIZE];
 	int section_count;
 	struct MatchDegree degree[CHORD_NUM][MAX_SECTION_SIZE];
+	int key_signature;
+	int duration;
+	int beat;
+	int tempo;
 };
 
 const char *get_note_by_symbol(const char *str, int *octave);
-float get_freq_of_note(char *str);
-float get_time_of_note(const struct simple_input *input);
+float get_freq_by_notes(char *str);
+float get_time_by_input(const struct simple_input *input);
 void play_sound(float hz, float time);
 void get_chord(const char *note_name, int octave, int chord);
+int find_key_signature(char *value);
+
 
 #define mc_err(f, arg...) \
         fprintf(stderr, "ERR:[%s:%d]: " f "\n", __func__, __LINE__, ##arg)

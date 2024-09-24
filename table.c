@@ -108,42 +108,169 @@ void table_print_section(struct simple_table *table)
 	printf("\n");
 }
 
-static int table_init_input(struct simple_table *table)
+int get_key_signature(const char *filename, int *key_signature)
 {
-	FILE *file;
-	char filename[] = "song_juhuatai";
+	char line[256];
+	char value[256];
 
-	memset(table, 0, sizeof(struct simple_table));
-
-	// 打开文件
-	file = fopen(filename, "r");
-	if (file == NULL) {
-		perror("Error opening file");
-		return EXIT_FAILURE;
+	FILE *fp = fopen(filename, "r");
+	if (fp == NULL) {
+		printf("Error opening file");
+		return -1;
 	}
-	// 读取文件直到末尾或数组满
-	while (table->len < MAX_INPUT_SIZE && !feof(file)) {
-		if (fscanf
-		    (file, "%c %d %d\n", &table->input[table->len].symbol,
-		     &table->input[table->len].duration,
-		     &table->input[table->len].pitch) == 3) {
-			// 成功读取一行
-			table->len++;
-		} else {
-			// 读取失败或到达文件末尾
-			break;
+
+	// key signature
+	while (fgets(line, sizeof(line), fp) != NULL) {
+		if (strncmp(line, "key_signature=", strlen("key_signature=")) ==
+		    0) {
+			int result = sscanf(line, "key_signature=%s", value);
+	//		printf("result = %d\n", result);
+			if (result != 1) {
+				fprintf(stderr,
+					"Error reading key signature\n");
+				fclose(fp);
+				return -1;
+			}
+		}
+	}
+	*key_signature = find_key_signature(value);
+	if (*key_signature == -1) {
+		fprintf(stderr, "Error finding key signature\n");
+		fclose(fp);
+		return -1;
+	}
+	fclose(fp);
+	return 0;
+}
+
+int get_duration_beat(const char *filename, int *duration, int *beat)
+{
+	char line[256];
+
+	FILE *fp = fopen(filename, "r");
+	if (fp == NULL) {
+		printf("Error opening file");
+		return -1;
+	}
+
+	// 获取 duration 和 beat
+	while (fgets(line, sizeof(line), fp) != NULL) {
+		if (strncmp(line, "duration/beat=", strlen("duration/beat=")) ==
+		    0) {
+			int result =
+			    sscanf(line, "duration/beat=%d/%d", duration,
+				   beat);
+			if (result != 2) {
+				fprintf(stderr,
+					"Error reading duration and beat\n");
+				fclose(fp);
+				return -1;
+			}
 		}
 	}
 
-	// 关闭文件
-	fclose(file);
-
-	return EXIT_SUCCESS;
+	fclose(fp);
+	return 0;
 }
 
-void table_init(struct simple_table *table)
+int get_tempo(const char *filename, int *tempo)
 {
-	table_init_input(table);
+	char line[256];
+
+	FILE *fp = fopen(filename, "r");
+	if (fp == NULL) {
+		printf("Error opening file");
+		return -1;
+	}
+
+	// 获取 duration 和 beat
+	while (fgets(line, sizeof(line), fp) != NULL) {
+		if (strncmp(line, "tempo=", strlen("tempo=")) ==
+		    0) {
+			int result =
+			    sscanf(line, "tempo=%d", tempo);
+			if (result != 1) {
+				fprintf(stderr,
+					"Error reading tempo\n");
+				fclose(fp);
+				return -1;
+			}
+		}
+	}
+
+	fclose(fp);
+	return 0;
+}
+int get_input(const char *filename, struct simple_input *input, int *input_len, const struct simple_table *table)
+{
+	char line[256];
+	int count = 0;
+
+	FILE *fp = fopen(filename, "r");
+	if (fp == NULL) {
+		printf("Error opening file");
+		return -1;
+	}
+
+	while (fgets(line, sizeof(line), fp) != NULL) {
+		int result =
+		    sscanf(line, "%c %d %d", &input[count].symbol,
+			   &input[count].duration,
+			   &input[count].pitch);
+		   input[count].table = table;
+		if (result == 3) {
+			count++;
+		} else {
+	//		fprintf(stderr, "Failed to parse line: %s, count %d\n",
+	//			line, count);
+			continue;	// 或者处理错误
+		}
+	}
+
+	*input_len = count;
+	fclose(fp);
+	return 0;
+}
+int parse_table(const char *filename, struct simple_table *table)
+{
+	int ret;
+
+	ret = get_key_signature(filename, &table->key_signature);
+	if (ret)
+		return ret;
+	ret = get_duration_beat(filename, &table->duration, &table->beat);
+	if (ret)
+		return ret;
+	ret = get_tempo(filename, &table->tempo);
+	if (ret)
+		return ret;
+	ret = get_input(filename, table->input, &table->len, table);
+	if (ret)
+		return ret;
+
+	// 打印解析的数据，以验证正确性
+	printf("Key Signature: %d\n", table->key_signature);
+	printf("Duration: %d\n", table->duration);
+	printf("Beat: %d\n", table->beat);
+	printf("Tempo: %d\n", table->tempo);
+	printf("Table Len: %d\n", table->len);
+	printf("Input Data:\n");
+	for (int i = 0; i < table->len; i++) {
+		printf("Symbol: %c, Duration: %d, Pitch: %d\n",
+		       table->input[i].symbol, table->input[i].duration,
+		       table->input[i].pitch);
+		char notes[10] = {0};
+		get_notes_by_input(&table->input[i], notes);
+		get_freq_by_notes(notes);
+		get_time_by_input(&table->input[i]);
+	}
+	return 0;
+}
+
+void table_init(const char* filename, struct simple_table *table)
+{
+	//table_init_input(table);
+	parse_table(filename, table);
 	table_init_section(table);
 }
 
@@ -319,3 +446,4 @@ void chord_match_degree(struct simple_table *table)
 #endif
 	}
 }
+

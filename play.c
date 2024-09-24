@@ -30,50 +30,40 @@ void play_chord(char *note, int octave)
 	smc_debug(tmp, "%s%d", note, octave);
 	mc_debug("%s's note is: %s\n", str, tmp);
 
-	float frequency = get_freq_of_note(tmp);
+	float frequency = get_freq_by_notes(tmp);
 	if (frequency < 0)
 		continue;
-	time = get_time_of_note(&table->input[i]);
+	time = get_time_by_input(&table->input[i]);
 	play_sound(frequency, time);
 }
 #endif
 int table_play_song(struct simple_table *table)
 {
-	float time;
 	for (int i = 0; i < table->len; i++) {
-		const char *str = &table->input[i].symbol;
-		if (strlen(str) > 1) {
-			mc_err("Err len %ld", strlen(str));
-			return -1;
-		}
-
-		int octave;
-		const char *note = get_note_by_symbol(str, &octave);
-		if (!note) {
-			mc_warn("symbol '%s' continue", str);
+		printf("Symbol: %c, Duration: %d, Pitch: %d\n",
+		       table->input[i].symbol, table->input[i].duration,
+		       table->input[i].pitch);
+		char notes[10] = {0};
+		if (get_notes_by_input(&table->input[i], notes)) {
+			mc_warn("symbol '%c' continue", table->input[i].symbol);
 			continue;
-		} else if (note[0] == '0') {
+		} else if (table->input[i].symbol == '0') {
 			float beat_time = BEAT_TIME / table->input[i].duration;
 			struct timespec req, rem;
 			req.tv_sec = 0;
 			req.tv_nsec = beat_time * 1000000000;
 			nanosleep(&req, &rem);
-			mc_info("symbol '%s' continue, delay %ld seconds",
-				str, req.tv_nsec);
+			mc_info("symbol '%c' continue, delay %ld seconds",
+				table->input[i].symbol, req.tv_nsec);
 			continue;
 		}
-		char tmp[20];
-		octave += table->input[i].pitch;
-		sprintf(tmp, "%s%d", note, octave);
-		mc_info("%s's note is: %s", str, tmp);
-
-		float frequency = get_freq_of_note(tmp);
+		float frequency = get_freq_by_notes(notes);
 		if (frequency < 0)
 			continue;
-		time = get_time_of_note(&table->input[i]);
+		get_time_by_input(&table->input[i]);
+		float time = get_time_by_input(&table->input[i]);
 		play_sound(frequency, time);
 	}
-
 	return 0;
 }
 
@@ -164,10 +154,10 @@ int table_play_song_section(struct simple_table *table)
 			sprintf(tmp, "%s%d", note, octave);
 			mc_info("%s's note is: %s", str, tmp);
 
-			float frequency = get_freq_of_note(tmp);
+			float frequency = get_freq_by_notes(tmp);
 			if (frequency < 0)
 				continue;
-			time = get_time_of_note(&table->input[i]);
+			time = get_time_by_input(&table->input[i]);
 			play_sound(frequency, time);
 		}
     // 等待线程完成
