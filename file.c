@@ -37,7 +37,7 @@ int main()
 	mc_debug("Read %d entries from file.\n", table.len);
 	for (int j = 0; j < table.len; j++) {
 		mc_debug("%c %d %d\n", table.input[j].symbol,
-			table.input[j].duration, table.input[j].pitch);
+			 table.input[j].duration, table.input[j].pitch);
 	}
 
 	return EXIT_SUCCESS;

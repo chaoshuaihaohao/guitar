@@ -19,7 +19,7 @@ static struct chord_stages stage[] = {
 	{ LEVEL_7, 11 },
 };
 
-struct simple_note note[] = {
+struct simple_note note[KEY_NUM] = {
 	{ KEY_SIGNATURE_C_FLAT, "Cb", LEVEL_1, 0 },
 	{ KEY_SIGNATURE_C, "C", LEVEL_1, 1 },
 	{ KEY_SIGNATURE_C_SHARP, "C#", LEVEL_1, 2 },
@@ -162,7 +162,7 @@ float get_freq_by_notes(char *notes)
 	return frequency;
 }
 
-#if 1
+#if 0
 static char *get_target_note_by_note(const char *note_name, int level,
 				     int steps_up_down)
 {
@@ -242,13 +242,13 @@ static char *get_seventh_note_by_note(const char *note_name)
  * input note name
  * output chord string
  */
-void get_chord(const char *note_name, int octave, int chord)
+void get_chord(const char *notes, int chord)
 {
 #if 1
-	mc_info("note name %s%d", note_name, octave);
-	mc_info("note name %s%d", get_third_note_by_note(note_name), octave);
-	mc_info("note name %s%d", get_fifth_note_by_note(note_name), octave);
-	mc_info("note name %s%d", get_seventh_note_by_note(note_name), octave);
+	mc_info("note name %s", notes);
+//      mc_info("note name %s%d", get_third_note_by_note(note_name), octave);
+//      mc_info("note name %s%d", get_fifth_note_by_note(note_name), octave);
+//      mc_info("note name %s%d", get_seventh_note_by_note(note_name), octave);
 #else
 	mc_info("note name %s: %s %s %s", note_name,
 		get_third_note_by_note(note_name),
@@ -257,8 +257,12 @@ void get_chord(const char *note_name, int octave, int chord)
 #endif
 }
 
-#if 1
-const char *get_notes_by_input(const struct simple_input *input, char *notes)
+/*
+ * return:
+ *	 0: symbol '0'; 1: notes; -1: continue
+ */
+
+int get_notes_by_input(const struct simple_input *input, char *notes)
 {
 	char symbol = input->symbol;
 	uint32_t i;
@@ -276,10 +280,10 @@ const char *get_notes_by_input(const struct simple_input *input, char *notes)
 	case '7':
 		break;
 	case '0':
-		return &input->symbol;
+		return -1;
 	default:
-		mc_info("skip special symbol of %c", symbol);
-		return NULL;
+		mc_info("skip special symbol '%c'", symbol);
+		return -1;
 	}
 	int level = symbol - '1';
 
@@ -287,8 +291,8 @@ const char *get_notes_by_input(const struct simple_input *input, char *notes)
 	note_level = note[input->table->key_signature].level + level - LEVEL_1;
 	note_level %= 7;
 	interval =
-	    note[input->table->key_signature].steps_from_a4 + stage[level].step -
-	    stage[LEVEL_1].step;
+	    note[input->table->key_signature].steps_from_a4 +
+	    stage[level].step - stage[LEVEL_1].step;
 	if (interval >= 12) {
 		interval -= 12;
 		octave++;
@@ -308,7 +312,7 @@ const char *get_notes_by_input(const struct simple_input *input, char *notes)
 		mc_err
 		    ("Err: no key symbol is matched to symbol %s, note_level %d, interval %d.",
 		     note_name, note_level, interval);
-		return NULL;
+		return -1;
 	} else {
 		//get_chord(note_name);
 
@@ -316,91 +320,20 @@ const char *get_notes_by_input(const struct simple_input *input, char *notes)
 	mc_info("note_name = %s, octave = %d", note_name, octave);
 	sprintf(notes, "%s%d", note_name, octave);
 	mc_info("notes = %s", notes);
-	return NULL;
-}
-#endif
-const char *get_note_by_symbol(const char *str, int *octave)
-{
-	char input = str[0];
-	uint32_t i;
-	char *note_name = NULL;
-	int note_level;
-	int interval;
-
-	switch (input) {
-	case '1':
-	case '2':
-	case '3':
-	case '4':
-	case '5':
-	case '6':
-	case '7':
-		break;
-	case '0':
-		return str;
-	default:
-		mc_debug("info: unsupport note of %s", str);
-		return NULL;
-	}
-	int level = input - '0' - 1;
-
-	*octave = DEAFULT_OCTAVE;
-	note_level = note[KEY_SIGNATURE].level + level - LEVEL_1;
-	note_level %= 7;
-	interval =
-	    note[KEY_SIGNATURE].steps_from_a4 + stage[level].step -
-	    stage[LEVEL_1].step;
-	if (interval >= 12) {
-		interval -= 12;
-		(*octave)++;
-	}
-	if (interval < 0) {
-		interval += 12;
-		(*octave)--;
-	}
-
-	for (i = 0; i < ARRAY_SIZE(note); i++) {
-		if (note[i].steps_from_a4 == interval
-		    && note[i].level == note_level)
-			note_name = note[i].name;
-	}
-
-	if (!note_name) {
-		mc_err
-		    ("Err: no key symbol is matched to symbol %s, note_level %d, interval %d.",
-		     note_name, note_level, interval);
-		return NULL;
-	} else {
-		//get_chord(note_name);
-
-	}
-	return note_name;
-}
-
-static int simple_check()
-{
-	if (KEY_SIGNATURE == KEY_SIGNATURE_D_SHARP) {
-		mc_err("ERR: unsupport key 'D#', Please use key Eb");
-		return -1;
-	}
 	return 0;
 }
 
 int main(int argc, char **argv)
 {
-
-	int ret;
-
-	ret = simple_check();
-	if (ret < 0)
-		return -1;
-
 	struct simple_table table;
 
 	table_init(argv[1], &table);
 	chord_match_degree(&table);
+#if 1
 	table_play_song(&table);
-//	table_play_song_section(&table);
+#else
+	table_play_song_section(&table);
+#endif
 
 	return 0;
 }

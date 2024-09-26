@@ -3,76 +3,17 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include <math.h>
 #include <time.h>
 #include "main.h"
 #include "table.h"
 #include "play.h"
 
-void table_print_input(struct simple_table *table)
-{
-	mc_debug("Read %d entries from file.", table->len);
-	for (int j = 0; j < table->len; j++) {
-		mc_debug("%c %d %d", table->input[j].symbol,
-			table->input[j].duration, table->input[j].pitch);
-	}
-	double duration = 1.0 / QUARTER * BEAT;
-	double beat_count = 0;
-	int count = 0;
-	int tmp = 0;
-	for (int j = 0; j < table->len; j++) {
-		switch (table->input[j].duration) {
-		case 4:
-			printf("   ");
-			break;
-		case 8:
-			printf(" ");
-			break;
-		}
-		printf("%c", table->input[j].symbol);
-		if (table->input[j].duration)
-			beat_count += 1.0 / table->input[j].duration;
-		if (beat_count == duration) {
-			beat_count = 0;
-			printf("|");
-			count++;
-			if (count % 4 == 0) {
-				printf("\n");
-				for (int k = tmp; k <= j; k++) {
-					switch (table->input[k].duration) {
-					case 4:
-						printf("    ");
-						break;
-					case 8:
-						printf(" -");
-						break;
-					case 16:
-						printf("=");
-						break;
-					}
-					if (table->input[k].duration)
-						beat_count +=
-						    1.0 /
-						    table->input[k].duration;
-					if (beat_count == duration) {
-						beat_count = 0;
-						printf("|");
-					}
-				}
-				tmp = j + 1;
-				printf("\n");
-				beat_count = 0;
-
-			}
-		}
-	}
-	printf("\n");
-}
-
 static void table_init_section(struct simple_table *table)
 {
-	double section_beat = 1.0 / QUARTER * BEAT;
-	double beat_count = 0;
+	float section_beat = (float)table->beat / table->duration;
+	float beat_count = 0;
 	int section_count = 0;
 
 	for (int j = 0; j < table->len; j++) {
@@ -108,6 +49,15 @@ void table_print_section(struct simple_table *table)
 	printf("\n");
 }
 
+static int simple_check(int key)
+{
+	if (key == KEY_SIGNATURE_D_SHARP) {
+		mc_err("ERR: unsupport key 'D#', Please use key Eb");
+		return -1;
+	}
+	return 0;
+}
+
 int get_key_signature(const char *filename, int *key_signature)
 {
 	char line[256];
@@ -118,13 +68,11 @@ int get_key_signature(const char *filename, int *key_signature)
 		printf("Error opening file");
 		return -1;
 	}
-
 	// key signature
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		if (strncmp(line, "key_signature=", strlen("key_signature=")) ==
 		    0) {
 			int result = sscanf(line, "key_signature=%s", value);
-	//		printf("result = %d\n", result);
 			if (result != 1) {
 				fprintf(stderr,
 					"Error reading key signature\n");
@@ -134,7 +82,7 @@ int get_key_signature(const char *filename, int *key_signature)
 		}
 	}
 	*key_signature = find_key_signature(value);
-	if (*key_signature == -1) {
+	if (*key_signature == -1 || simple_check(*key_signature)) {
 		fprintf(stderr, "Error finding key signature\n");
 		fclose(fp);
 		return -1;
@@ -152,7 +100,6 @@ int get_duration_beat(const char *filename, int *duration, int *beat)
 		printf("Error opening file");
 		return -1;
 	}
-
 	// 获取 duration 和 beat
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		if (strncmp(line, "duration/beat=", strlen("duration/beat=")) ==
@@ -182,16 +129,12 @@ int get_tempo(const char *filename, int *tempo)
 		printf("Error opening file");
 		return -1;
 	}
-
 	// 获取 duration 和 beat
 	while (fgets(line, sizeof(line), fp) != NULL) {
-		if (strncmp(line, "tempo=", strlen("tempo=")) ==
-		    0) {
-			int result =
-			    sscanf(line, "tempo=%d", tempo);
+		if (strncmp(line, "tempo=", strlen("tempo=")) == 0) {
+			int result = sscanf(line, "tempo=%d", tempo);
 			if (result != 1) {
-				fprintf(stderr,
-					"Error reading tempo\n");
+				fprintf(stderr, "Error reading tempo\n");
 				fclose(fp);
 				return -1;
 			}
@@ -201,7 +144,9 @@ int get_tempo(const char *filename, int *tempo)
 	fclose(fp);
 	return 0;
 }
-int get_input(const char *filename, struct simple_input *input, int *input_len, const struct simple_table *table)
+
+int get_input(const char *filename, struct simple_input *input, int *input_len,
+	      const struct simple_table *table)
 {
 	char line[256];
 	int count = 0;
@@ -213,16 +158,15 @@ int get_input(const char *filename, struct simple_input *input, int *input_len, 
 	}
 
 	while (fgets(line, sizeof(line), fp) != NULL) {
-		int result =
-		    sscanf(line, "%c %d %d", &input[count].symbol,
-			   &input[count].duration,
-			   &input[count].pitch);
-		   input[count].table = table;
+		int result = sscanf(line, "%c %d %d", &input[count].symbol,
+				    &input[count].duration,
+				    &input[count].pitch);
+		input[count].table = table;
 		if (result == 3) {
 			count++;
 		} else {
-	//		fprintf(stderr, "Failed to parse line: %s, count %d\n",
-	//			line, count);
+			//              fprintf(stderr, "Failed to parse line: %s, count %d\n",
+			//                      line, count);
 			continue;	// 或者处理错误
 		}
 	}
@@ -231,6 +175,8 @@ int get_input(const char *filename, struct simple_input *input, int *input_len, 
 	fclose(fp);
 	return 0;
 }
+
+extern struct simple_note note[KEY_NUM];
 int parse_table(const char *filename, struct simple_table *table)
 {
 	int ret;
@@ -249,27 +195,22 @@ int parse_table(const char *filename, struct simple_table *table)
 		return ret;
 
 	// 打印解析的数据，以验证正确性
-	printf("Key Signature: %d\n", table->key_signature);
-	printf("Duration: %d\n", table->duration);
-	printf("Beat: %d\n", table->beat);
-	printf("Tempo: %d\n", table->tempo);
-	printf("Table Len: %d\n", table->len);
-	printf("Input Data:\n");
+	mc_info("Key Signature: %s", note[table->key_signature].name);
+	mc_info("Duration: %d", table->duration);
+	mc_info("Beat: %d", table->beat);
+	mc_info("Tempo: %d", table->tempo);
+	mc_info("Table Len: %d", table->len);
+	mc_info("Input Data:");
 	for (int i = 0; i < table->len; i++) {
-		printf("Symbol: %c, Duration: %d, Pitch: %d\n",
-		       table->input[i].symbol, table->input[i].duration,
-		       table->input[i].pitch);
-		char notes[10] = {0};
-		get_notes_by_input(&table->input[i], notes);
-		get_freq_by_notes(notes);
-		get_time_by_input(&table->input[i]);
+		mc_info("Symbol: '%c', Duration: %2d, Pitch: %2d",
+			table->input[i].symbol, table->input[i].duration,
+			table->input[i].pitch);
 	}
 	return 0;
 }
 
-void table_init(const char* filename, struct simple_table *table)
+void table_init(const char *filename, struct simple_table *table)
 {
-	//table_init_input(table);
 	parse_table(filename, table);
 	table_init_section(table);
 }
@@ -289,9 +230,12 @@ void table_init_third_chord_match_degree(struct simple_table *table, int index)
 
 	for (int j = table->section_start[index];
 	     j <= table->section_end[index]; j++) {
+#if 1
 		if (table->input[j].symbol == '.'
-		    || table->input[j].symbol == '-')
+		    || table->input[j].symbol == '-'
+		    || table->input[j].symbol == '0')
 			continue;
+#endif
 		int tmp = table->input[j].symbol - '0';
 		table->degree[THIRD][index].symbol_count++;
 		printf("%d ", tmp);
@@ -396,7 +340,7 @@ void table_init_ninth_chord_match_degree(struct simple_table *table, int index)
 }
 
 bool get_the_section_chord(struct simple_table *table, int chord,
-				  int index, uint8_t *bitmap)
+			   int index, uint8_t *bitmap)
 {
 #if 1
 	int max = table->degree[chord][index].score[0];	// 假设第一个元素是最大的
@@ -408,10 +352,12 @@ bool get_the_section_chord(struct simple_table *table, int chord,
 			tip = j;
 		}
 	}
+	if (table->degree[chord][index].symbol_count == 0)
+		return false;
 
 	//if degree is 100%, means matched.
 	if ((table->degree[chord][index].score[tip] /
-	    table->degree[chord][index].symbol_count) || chord == NINTH) {
+	     table->degree[chord][index].symbol_count) || chord == NINTH) {
 		mc_info("section %d mateched, chord %d", index, chord);
 		for (int j = 0; j < MATCH_DEGREE_SCORE_NUM; j++) {
 			if (table->degree[chord][index].score[j] == max) {
@@ -424,6 +370,107 @@ bool get_the_section_chord(struct simple_table *table, int chord,
 
 	return false;
 #endif
+}
+
+void play_input(struct simple_input *in)
+{
+	const struct simple_table *table = in->table;
+	char notes[10];
+
+	if (get_notes_by_input(in, notes)) {
+		if (in->symbol == '0') {
+			float beat_time = 60.0 / table->tempo;
+			float delay_time =
+			    beat_time * table->duration /
+			    in->duration;
+			struct timespec req, rem;
+			req.tv_sec = 0;
+			req.tv_nsec = delay_time * 1000000000;
+			nanosleep(&req, &rem);
+			mc_info
+			    ("symbol '%c' continue, delay %ld seconds",
+			     in->symbol, req.tv_nsec / 1000000000);
+		}
+		return;
+	}
+	mc_info("%c's note is: %s", in->symbol, notes);
+
+	float frequency = get_freq_by_notes(notes);
+	if (frequency < 0)
+		return;
+	float time = get_time_by_input(in);
+	play_sound(frequency, time);
+}
+
+void *thread_play_input(void *arg)
+{
+	struct simple_input *in = arg;
+	play_input(in);
+	return NULL;
+}
+
+int get_chord_by_level(struct thread_arg *arg)
+{
+	int level = arg->lc->level;
+	int chord = arg->lc->chord;
+	struct Ninth ninth_chord[] = {
+		{ 1, 3, 5, 7, 2 },
+		{ 2, 4, 6, 1, 3 },
+		{ 3, 5, 7, 2, 4 },
+		{ 4, 6, 1, 3, 5 },
+		{ 5, 7, 2, 4, 6 },
+		{ 6, 1, 3, 5, 7 },
+		{ 7, 2, 4, 6, 1 },
+	};
+	mc_info("level = %d, chord = %d", level, chord);
+	struct simple_input in[5] = {0};
+	int in_len = 0;
+#define THREAD_COUNT 5
+	pthread_t threads[THREAD_COUNT];
+	
+	switch (chord) {
+	case NINTH:
+		in[4].symbol = ninth_chord[level].ninth + '0';
+		in_len++;
+		/* fallthrough */
+	case SEVENTH:
+		in[3].symbol = ninth_chord[level].seventh + '0';
+		in_len++;
+		/* fallthrough */
+	case THIRD:
+		in[2].symbol = ninth_chord[level].root + '0';
+		in[1].symbol = ninth_chord[level].third + '0';
+		in[0].symbol = ninth_chord[level].fifth + '0';
+		in_len += 3;
+		break;
+	}
+	for (int i = 0; i < in_len; i++) {
+		in[i].pitch = 0;
+		in[i].duration = 8;
+		in[i].table = arg->table;
+		mc_info("play chord %c >>>>>>>>>>>>>>>>>>>>>>>>>", in[i].symbol);
+		if (pthread_create(&threads[i], NULL, thread_play_input, in) != 0) {
+		    mc_err("pthread_create");
+		    return -1;
+		}
+	}
+
+
+	// 等待所有线程完成
+	for (int i = 0; i < in_len; i++) {
+		if (pthread_join(threads[i], NULL) != 0) {
+		    mc_err("pthread_join");
+		    return -1;
+		}
+	}
+	return 0;
+}
+
+void *thread_play_chord(void *arg)
+{
+	struct thread_arg *t_arg = arg;
+	get_chord_by_level(t_arg);
+	return NULL;
 }
 
 void chord_match_degree(struct simple_table *table)
@@ -446,4 +493,3 @@ void chord_match_degree(struct simple_table *table)
 #endif
 	}
 }
-

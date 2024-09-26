@@ -106,13 +106,12 @@ int get_key_signature(const char *filename, int *key_signature)
 		printf("Error opening file");
 		return -1;
 	}
-
 	// key signature
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		if (strncmp(line, "key_signature=", strlen("key_signature=")) ==
 		    0) {
 			int result = sscanf(line, "key_signature=%s", value);
-	//		printf("result = %d\n", result);
+			//              printf("result = %d\n", result);
 			if (result != 1) {
 				fprintf(stderr,
 					"Error reading key signature\n");
@@ -140,7 +139,6 @@ int get_duration_beat(const char *filename, int *duration, int *beat)
 		printf("Error opening file");
 		return -1;
 	}
-
 	// 获取 duration 和 beat
 	while (fgets(line, sizeof(line), fp) != NULL) {
 		if (strncmp(line, "duration/beat=", strlen("duration/beat=")) ==
@@ -173,15 +171,14 @@ int get_input(const char *filename, struct simple_input *input, int *input_len)
 	}
 
 	while (fgets(line, sizeof(line), fp) != NULL) {
-		int result =
-		    sscanf(line, "%d %d %d", &input[count].symbol,
-			   &input[count].duration,
-			   &input[count].pitch);
+		int result = sscanf(line, "%d %d %d", &input[count].symbol,
+				    &input[count].duration,
+				    &input[count].pitch);
 		if (result == 3) {
 			count++;
 		} else {
-	//		fprintf(stderr, "Failed to parse line: %s, count %d\n",
-	//			line, count);
+			//              fprintf(stderr, "Failed to parse line: %s, count %d\n",
+			//                      line, count);
 			continue;	// 或者处理错误
 		}
 	}
@@ -190,6 +187,7 @@ int get_input(const char *filename, struct simple_input *input, int *input_len)
 	fclose(fp);
 	return 0;
 }
+
 int parse_table(const char *filename, struct simple_table *table)
 {
 	char value[256];

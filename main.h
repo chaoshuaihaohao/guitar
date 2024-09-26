@@ -1,20 +1,9 @@
 #ifndef __GUITAR_H__
 #define __GUITAR_H__
 
-//#define KEY_SIGNATURE  KEY_SIGNATURE_C_SHARP  //: 调号
-#define KEY_SIGNATURE  KEY_SIGNATURE_F 		//: 调号
-//#define KEY_SIGNATURE  KEY_SIGNATURE_B_FLAT 	//: 调号
-
-#define TEMPO (120)	//节拍
-#define BEAT_TIME  (60.0 / TEMPO * 4.0)
-
-#define BEAT	4
-#define QUARTER	4
-
 #define DEAFULT_OCTAVE	4
 
 #define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
-
 
 enum LEVEL {
 	LEVEL_1,
@@ -30,7 +19,6 @@ struct chord_stages {
 	int level;
 	int step;
 };
-
 
 enum KEY_SIG {
 	KEY_SIGNATURE_C_FLAT,
@@ -54,6 +42,7 @@ enum KEY_SIG {
 	KEY_SIGNATURE_B_FLAT,
 	KEY_SIGNATURE_B,
 	KEY_SIGNATURE_B_SHARP,
+	KEY_NUM,
 };
 
 struct simple_note {
@@ -66,19 +55,18 @@ struct simple_note {
 struct simple_char {
 	char name[10];
 	float hz;
-	uint8_t key;	//high 4 is pitch, low 4 bit is key
+	uint8_t key;		//high 4 is pitch, low 4 bit is key
 };
 
 struct simple_input {
 	char symbol;
 	int duration;
-	int pitch;//音高
+	int pitch;		//音高
 	const struct simple_table *table;
 };
 
 #define MAX_INPUT_SIZE 1024
 #define MAX_SECTION_SIZE 256
-
 
 #define MATCH_DEGREE_SCORE_NUM	7
 struct MatchDegree {
@@ -87,9 +75,9 @@ struct MatchDegree {
 };
 
 enum Chord_Type {
-	THIRD = 3,
-	SEVENTH = 7,
-	NINTH = 9,
+	THIRD,
+	SEVENTH,
+	NINTH,
 	CHORD_NUM,
 };
 
@@ -100,7 +88,7 @@ enum Chord_Type {
  */
 struct simple_table {
 	struct simple_input input[MAX_INPUT_SIZE];
-	int len;	//input len
+	int len;		//input len
 	int section_start[MAX_SECTION_SIZE];	//the end input index of section
 	int section_end[MAX_SECTION_SIZE];
 	int section_count;
@@ -111,13 +99,11 @@ struct simple_table {
 	int tempo;
 };
 
-const char *get_note_by_symbol(const char *str, int *octave);
 float get_freq_by_notes(char *str);
 float get_time_by_input(const struct simple_input *input);
 void play_sound(float hz, float time);
-void get_chord(const char *note_name, int octave, int chord);
+void get_chord(const char *notes, int chord);
 int find_key_signature(char *value);
-
 
 #define mc_err(f, arg...) \
         fprintf(stderr, "ERR:[%s:%d]: " f "\n", __func__, __LINE__, ##arg)
@@ -128,4 +114,4 @@ int find_key_signature(char *value);
 #define mc_debug(f, arg...) \
 //	printf("DBG:[%s:%d]:" f "\n", __func__, __LINE__, ##arg)
 
-#endif  //__GUITAR_H__
+#endif //__GUITAR_H__
